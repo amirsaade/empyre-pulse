@@ -216,9 +216,9 @@ export function Dashboard({ markets }: { markets: Market[] }) {
           ],
           getFillColor: (cell) => {
             const [r, g, b] = magma(normalize(cell.monthly, low, high));
-            return [r, g, b, extruded ? 220 : 165];
+            return [r, g, b, extruded ? 215 : 140];
           },
-          getElevation: (cell) => normalize(cell.monthly, low, high) * 4000,
+          getElevation: (cell) => normalize(cell.monthly, low, high) * 900,
           elevationScale: 1,
           material: { ambient: 0.6, diffuse: 0.6, shininess: 32 },
           updateTriggers: {
@@ -453,6 +453,7 @@ export function Dashboard({ markets }: { markets: Market[] }) {
       <MapCanvas
         layers={layers}
         focus={focus}
+        pitched={extruded}
         onBoundsChange={(bounds) => {
           viewBounds.current = bounds;
         }}

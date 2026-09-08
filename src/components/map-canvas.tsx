@@ -8,7 +8,10 @@ import type { Layer } from "@deck.gl/core";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { Bounds } from "@/lib/scan";
 
-// CARTO's dark basemap is free and needs no access token.
+/**
+ * CARTO's dark vector basemap. Free, tokenless and unwatermarked — unlike their
+ * raster endpoints, which now stamp "API KEY REQUIRED" across every tile.
+ */
 const BASEMAP_STYLE = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
 
 export type MapCanvasHandle = {
@@ -19,11 +22,13 @@ type Props = {
   layers: Layer[];
   /** Set this to fly the map to a new area; identity change triggers the move. */
   focus: Bounds | null;
+  /** Extruded layers are unreadable from straight above, so tilt for them. */
+  pitched: boolean;
   onBoundsChange?: (bounds: Bounds) => void;
   onReady?: (handle: MapCanvasHandle) => void;
 };
 
-export function MapCanvas({ layers, focus, onBoundsChange, onReady }: Props) {
+export function MapCanvas({ layers, focus, pitched, onBoundsChange, onReady }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const overlayRef = useRef<MapboxOverlay | null>(null);
@@ -52,6 +57,9 @@ export function MapCanvas({ layers, focus, onBoundsChange, onReady }: Props) {
     map.addControl(new NavigationControl({ showCompass: true }), "bottom-right");
     map.addControl(new GeolocateControl({ trackUserLocation: false }), "bottom-right");
 
+    // Non-interleaved: deck draws to its own canvas above the map. Interleaving
+    // to slot layers under the labels crashes this maplibre version, so the
+    // cells are drawn semi-transparent instead to keep labels legible.
     const overlay = new MapboxOverlay({ interleaved: false, layers: [] });
     map.addControl(overlay);
 
@@ -83,6 +91,10 @@ export function MapCanvas({ layers, focus, onBoundsChange, onReady }: Props) {
   useEffect(() => {
     overlayRef.current?.setProps({ layers });
   }, [layers]);
+
+  useEffect(() => {
+    mapRef.current?.easeTo({ pitch: pitched ? 50 : 0, duration: 700 });
+  }, [pitched]);
 
   useEffect(() => {
     if (!focus || !mapRef.current) return;
