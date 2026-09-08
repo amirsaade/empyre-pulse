@@ -31,8 +31,11 @@ export function MapCanvas({ layers, focus, onBoundsChange, onReady }: Props) {
   // Keep callbacks in refs so the map is created exactly once.
   const onBoundsChangeRef = useRef(onBoundsChange);
   const onReadyRef = useRef(onReady);
-  onBoundsChangeRef.current = onBoundsChange;
-  onReadyRef.current = onReady;
+
+  useEffect(() => {
+    onBoundsChangeRef.current = onBoundsChange;
+    onReadyRef.current = onReady;
+  }, [onBoundsChange, onReady]);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
