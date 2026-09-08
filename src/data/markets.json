@@ -1,0 +1,1232 @@
+[
+  {
+    "slug": "albany-new-york",
+    "city": "Albany",
+    "region": "New York",
+    "country": "United States",
+    "scrapedAt": "2026-07-15",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/united-states/ny/albany/2026-07-15/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-states/ny/albany/2026-07-15/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "amsterdam-north-holland",
+    "city": "Amsterdam",
+    "region": "North Holland",
+    "country": "The Netherlands",
+    "scrapedAt": "2026-06-15",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/the-netherlands/north-holland/amsterdam/2026-06-15/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/the-netherlands/north-holland/amsterdam/2026-06-15/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "antwerp-flemish-region",
+    "city": "Antwerp",
+    "region": "Flemish Region",
+    "country": "Belgium",
+    "scrapedAt": "2026-06-29",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/belgium/vlg/antwerp/2026-06-29/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/belgium/vlg/antwerp/2026-06-29/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "asheville-north-carolina",
+    "city": "Asheville",
+    "region": "North Carolina",
+    "country": "United States",
+    "scrapedAt": "2026-06-25",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/united-states/nc/asheville/2026-06-25/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-states/nc/asheville/2026-06-25/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "athens-attica",
+    "city": "Athens",
+    "region": "Attica",
+    "country": "Greece",
+    "scrapedAt": "2026-06-28",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/greece/attica/athens/2026-06-28/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/greece/attica/athens/2026-06-28/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "austin-texas",
+    "city": "Austin",
+    "region": "Texas",
+    "country": "United States",
+    "scrapedAt": "2026-06-22",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/united-states/tx/austin/2026-06-22/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-states/tx/austin/2026-06-22/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "bangkok-central-thailand",
+    "city": "Bangkok",
+    "region": "Central Thailand",
+    "country": "Thailand",
+    "scrapedAt": "2026-06-29",
+    "currency": "THB",
+    "summaryUrl": "https://data.insideairbnb.com/thailand/central-thailand/bangkok/2026-06-29/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/thailand/central-thailand/bangkok/2026-06-29/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "barcelona-catalonia",
+    "city": "Barcelona",
+    "region": "Catalonia",
+    "country": "Spain",
+    "scrapedAt": "2026-06-24",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/spain/catalonia/barcelona/2026-06-24/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/spain/catalonia/barcelona/2026-06-24/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "barossa-valley-south-australia",
+    "city": "Barossa Valley",
+    "region": "South Australia",
+    "country": "Australia",
+    "scrapedAt": "2026-06-29",
+    "currency": "AUD",
+    "summaryUrl": "https://data.insideairbnb.com/australia/sa/barossa-valley/2026-06-29/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/australia/sa/barossa-valley/2026-06-29/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "barwon-south-west-vic",
+    "city": "Barwon South West",
+    "region": "Vic",
+    "country": "Australia",
+    "scrapedAt": "2026-06-29",
+    "currency": "AUD",
+    "summaryUrl": "https://data.insideairbnb.com/australia/vic/barwon-south-west-vic/2026-06-29/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/australia/vic/barwon-south-west-vic/2026-06-29/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "belize-belize",
+    "city": "Belize",
+    "region": "Belize",
+    "country": "Belize",
+    "scrapedAt": "2026-06-29",
+    "currency": "BZD",
+    "summaryUrl": "https://data.insideairbnb.com/belize/bz/belize/2026-06-29/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/belize/bz/belize/2026-06-29/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "bergamo-lombardia",
+    "city": "Bergamo",
+    "region": "Lombardia",
+    "country": "Italy",
+    "scrapedAt": "2026-06-30",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/italy/lombardia/bergamo/2026-06-30/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/italy/lombardia/bergamo/2026-06-30/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "berlin-berlin",
+    "city": "Berlin",
+    "region": "Berlin",
+    "country": "Germany",
+    "scrapedAt": "2026-06-26",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/germany/be/berlin/2026-06-26/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/germany/be/berlin/2026-06-26/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "bogota-distrito-capital",
+    "city": "Bogotá",
+    "region": "Distrito Capital",
+    "country": "Colombia",
+    "scrapedAt": "2026-06-21",
+    "currency": "COP",
+    "summaryUrl": "https://data.insideairbnb.com/colombia/dc/bogotá/2026-06-21/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/colombia/dc/bogotá/2026-06-21/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "bologna-emilia-romagna",
+    "city": "Bologna",
+    "region": "Emilia-Romagna",
+    "country": "Italy",
+    "scrapedAt": "2026-06-26",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/italy/emilia-romagna/bologna/2026-06-26/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/italy/emilia-romagna/bologna/2026-06-26/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "bordeaux-nouvelle-aquitaine",
+    "city": "Bordeaux",
+    "region": "Nouvelle-Aquitaine",
+    "country": "France",
+    "scrapedAt": "2026-06-22",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/france/nouvelle-aquitaine/bordeaux/2026-06-22/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/france/nouvelle-aquitaine/bordeaux/2026-06-22/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "boston-massachusetts",
+    "city": "Boston",
+    "region": "Massachusetts",
+    "country": "United States",
+    "scrapedAt": "2026-06-15",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/united-states/ma/boston/2026-06-15/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-states/ma/boston/2026-06-15/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "bozeman-montana",
+    "city": "Bozeman",
+    "region": "Montana",
+    "country": "United States",
+    "scrapedAt": "2026-07-16",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/united-states/mt/bozeman/2026-07-16/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-states/mt/bozeman/2026-07-16/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "brisbane-queensland",
+    "city": "Brisbane",
+    "region": "Queensland",
+    "country": "Australia",
+    "scrapedAt": "2026-07-14",
+    "currency": "AUD",
+    "summaryUrl": "https://data.insideairbnb.com/australia/qld/brisbane/2026-07-14/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/australia/qld/brisbane/2026-07-14/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "bristol-england",
+    "city": "Bristol",
+    "region": "England",
+    "country": "United Kingdom",
+    "scrapedAt": "2026-06-29",
+    "currency": "GBP",
+    "summaryUrl": "https://data.insideairbnb.com/united-kingdom/england/bristol/2026-06-29/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-kingdom/england/bristol/2026-06-29/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "broward-county-florida",
+    "city": "Broward County",
+    "region": "Florida",
+    "country": "United States",
+    "scrapedAt": "2026-06-29",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/united-states/fl/broward-county/2026-06-29/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-states/fl/broward-county/2026-06-29/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "brussels-brussels",
+    "city": "Brussels",
+    "region": "Brussels",
+    "country": "Belgium",
+    "scrapedAt": "2026-06-27",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/belgium/bru/brussels/2026-06-27/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/belgium/bru/brussels/2026-06-27/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "budapest-kozep-magyarorszag",
+    "city": "Budapest",
+    "region": "Közép-Magyarország",
+    "country": "Hungary",
+    "scrapedAt": "2026-07-21",
+    "currency": "HUF",
+    "summaryUrl": "https://data.insideairbnb.com/hungary/közép-magyarország/budapest/2026-07-21/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/hungary/közép-magyarország/budapest/2026-07-21/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "buenos-aires-ciudad-autonoma-de-buenos-aires",
+    "city": "Buenos Aires",
+    "region": "Ciudad Autónoma de Buenos Aires",
+    "country": "Argentina",
+    "scrapedAt": "2026-07-24",
+    "currency": "ARS",
+    "summaryUrl": "https://data.insideairbnb.com/argentina/ciudad-autónoma-de-buenos-aires/buenos-aires/2026-07-24/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/argentina/ciudad-autónoma-de-buenos-aires/buenos-aires/2026-07-24/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "cambridge-massachusetts",
+    "city": "Cambridge",
+    "region": "Massachusetts",
+    "country": "United States",
+    "scrapedAt": "2026-06-29",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/united-states/ma/cambridge/2026-06-29/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-states/ma/cambridge/2026-06-29/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "cape-town-western-cape",
+    "city": "Cape Town",
+    "region": "Western Cape",
+    "country": "South Africa",
+    "scrapedAt": "2026-06-29",
+    "currency": "ZAR",
+    "summaryUrl": "https://data.insideairbnb.com/south-africa/wc/cape-town/2026-06-29/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/south-africa/wc/cape-town/2026-06-29/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "chicago-illinois",
+    "city": "Chicago",
+    "region": "Illinois",
+    "country": "United States",
+    "scrapedAt": "2026-06-24",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/united-states/il/chicago/2026-06-24/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-states/il/chicago/2026-06-24/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "clark-county-nv",
+    "city": "Clark County",
+    "region": "NV",
+    "country": "United States",
+    "scrapedAt": "2026-06-27",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/united-states/nv/clark-county-nv/2026-06-27/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-states/nv/clark-county-nv/2026-06-27/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "columbus-ohio",
+    "city": "Columbus",
+    "region": "Ohio",
+    "country": "United States",
+    "scrapedAt": "2026-06-29",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/united-states/oh/columbus/2026-06-29/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-states/oh/columbus/2026-06-29/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "copenhagen-hovedstaden",
+    "city": "Copenhagen",
+    "region": "Hovedstaden",
+    "country": "Denmark",
+    "scrapedAt": "2026-06-30",
+    "currency": "DKK",
+    "summaryUrl": "https://data.insideairbnb.com/denmark/hovedstaden/copenhagen/2026-06-30/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/denmark/hovedstaden/copenhagen/2026-06-30/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "crete-crete",
+    "city": "Crete",
+    "region": "Crete",
+    "country": "Greece",
+    "scrapedAt": "2026-06-29",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/greece/crete/crete/2026-06-29/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/greece/crete/crete/2026-06-29/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "dallas-texas",
+    "city": "Dallas",
+    "region": "Texas",
+    "country": "United States",
+    "scrapedAt": "2026-07-20",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/united-states/tx/dallas/2026-07-20/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-states/tx/dallas/2026-07-20/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "denver-colorado",
+    "city": "Denver",
+    "region": "Colorado",
+    "country": "United States",
+    "scrapedAt": "2026-06-30",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/united-states/co/denver/2026-06-30/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-states/co/denver/2026-06-30/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "dublin-leinster",
+    "city": "Dublin",
+    "region": "Leinster",
+    "country": "Ireland",
+    "scrapedAt": "2026-06-21",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/ireland/leinster/dublin/2026-06-21/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/ireland/leinster/dublin/2026-06-21/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "edinburgh-scotland",
+    "city": "Edinburgh",
+    "region": "Scotland",
+    "country": "United Kingdom",
+    "scrapedAt": "2026-06-23",
+    "currency": "GBP",
+    "summaryUrl": "https://data.insideairbnb.com/united-kingdom/scotland/edinburgh/2026-06-23/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-kingdom/scotland/edinburgh/2026-06-23/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "euskadi-euskadi",
+    "city": "Euskadi",
+    "region": "Euskadi",
+    "country": "Spain",
+    "scrapedAt": "2026-06-30",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/spain/pv/euskadi/2026-06-30/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/spain/pv/euskadi/2026-06-30/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "florence-toscana",
+    "city": "Florence",
+    "region": "Toscana",
+    "country": "Italy",
+    "scrapedAt": "2026-06-26",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/italy/toscana/florence/2026-06-26/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/italy/toscana/florence/2026-06-26/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "fort-worth-texas",
+    "city": "Fort Worth",
+    "region": "Texas",
+    "country": "United States",
+    "scrapedAt": "2026-06-21",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/united-states/tx/fort-worth/2026-06-21/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-states/tx/fort-worth/2026-06-21/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "geneva-geneva",
+    "city": "Geneva",
+    "region": "Geneva",
+    "country": "Switzerland",
+    "scrapedAt": "2026-06-29",
+    "currency": "CHF",
+    "summaryUrl": "https://data.insideairbnb.com/switzerland/geneva/geneva/2026-06-29/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/switzerland/geneva/geneva/2026-06-29/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "ghent-flemish-region",
+    "city": "Ghent",
+    "region": "Flemish Region",
+    "country": "Belgium",
+    "scrapedAt": "2026-06-29",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/belgium/vlg/ghent/2026-06-29/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/belgium/vlg/ghent/2026-06-29/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "girona-catalonia",
+    "city": "Girona",
+    "region": "Catalonia",
+    "country": "Spain",
+    "scrapedAt": "2026-06-30",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/spain/catalonia/girona/2026-06-30/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/spain/catalonia/girona/2026-06-30/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "greater-manchester-england",
+    "city": "Greater Manchester",
+    "region": "England",
+    "country": "United Kingdom",
+    "scrapedAt": "2026-06-28",
+    "currency": "GBP",
+    "summaryUrl": "https://data.insideairbnb.com/united-kingdom/england/greater-manchester/2026-06-28/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-kingdom/england/greater-manchester/2026-06-28/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "hawaii-hawaii",
+    "city": "Hawaii",
+    "region": "Hawaii",
+    "country": "United States",
+    "scrapedAt": "2026-06-21",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/united-states/hi/hawaii/2026-06-21/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-states/hi/hawaii/2026-06-21/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "hong-kong-hong-kong",
+    "city": "Hong Kong",
+    "region": "Hong Kong",
+    "country": "China",
+    "scrapedAt": "2026-06-27",
+    "currency": "CNY",
+    "summaryUrl": "https://data.insideairbnb.com/china/hk/hong-kong/2026-06-27/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/china/hk/hong-kong/2026-06-27/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "ireland-ireland",
+    "city": "Ireland",
+    "region": null,
+    "country": "ireland",
+    "scrapedAt": "2026-06-21",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/ireland/2026-06-21/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/ireland/2026-06-21/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "istanbul-marmara",
+    "city": "Istanbul",
+    "region": "Marmara",
+    "country": "Turkey",
+    "scrapedAt": "2026-06-30",
+    "currency": "TRY",
+    "summaryUrl": "https://data.insideairbnb.com/turkey/marmara/istanbul/2026-06-30/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/turkey/marmara/istanbul/2026-06-30/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "jersey-city-new-jersey",
+    "city": "Jersey City",
+    "region": "New Jersey",
+    "country": "United States",
+    "scrapedAt": "2026-06-27",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/united-states/nj/jersey-city/2026-06-27/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-states/nj/jersey-city/2026-06-27/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "lisbon-lisbon",
+    "city": "Lisbon",
+    "region": "Lisbon",
+    "country": "Portugal",
+    "scrapedAt": "2026-06-23",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/portugal/lisbon/lisbon/2026-06-23/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/portugal/lisbon/lisbon/2026-06-23/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "london-england",
+    "city": "London",
+    "region": "England",
+    "country": "United Kingdom",
+    "scrapedAt": "2026-06-19",
+    "currency": "GBP",
+    "summaryUrl": "https://data.insideairbnb.com/united-kingdom/england/london/2026-06-19/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-kingdom/england/london/2026-06-19/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "los-angeles-california",
+    "city": "Los Angeles",
+    "region": "California",
+    "country": "United States",
+    "scrapedAt": "2026-06-15",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/united-states/ca/los-angeles/2026-06-15/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-states/ca/los-angeles/2026-06-15/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "lyon-auvergne-rhone-alpes",
+    "city": "Lyon",
+    "region": "Auvergne-Rhone-Alpes",
+    "country": "France",
+    "scrapedAt": "2026-06-22",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/france/auvergne-rhone-alpes/lyon/2026-06-22/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/france/auvergne-rhone-alpes/lyon/2026-06-22/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "madrid-comunidad-de-madrid",
+    "city": "Madrid",
+    "region": "Comunidad de Madrid",
+    "country": "Spain",
+    "scrapedAt": "2026-06-20",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/spain/comunidad-de-madrid/madrid/2026-06-20/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/spain/comunidad-de-madrid/madrid/2026-06-20/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "malaga-andalucia",
+    "city": "Malaga",
+    "region": "Andalucía",
+    "country": "Spain",
+    "scrapedAt": "2026-06-30",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/spain/andalucía/malaga/2026-06-30/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/spain/andalucía/malaga/2026-06-30/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "mallorca-islas-baleares",
+    "city": "Mallorca",
+    "region": "Islas Baleares",
+    "country": "Spain",
+    "scrapedAt": "2026-06-23",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/spain/islas-baleares/mallorca/2026-06-23/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/spain/islas-baleares/mallorca/2026-06-23/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "malta-malta",
+    "city": "Malta",
+    "region": null,
+    "country": "malta",
+    "scrapedAt": "2026-06-28",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/malta/2026-06-28/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/malta/2026-06-28/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "melbourne-victoria",
+    "city": "Melbourne",
+    "region": "Victoria",
+    "country": "Australia",
+    "scrapedAt": "2026-06-16",
+    "currency": "AUD",
+    "summaryUrl": "https://data.insideairbnb.com/australia/vic/melbourne/2026-06-16/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/australia/vic/melbourne/2026-06-16/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "menorca-islas-baleares",
+    "city": "Menorca",
+    "region": "Islas Baleares",
+    "country": "Spain",
+    "scrapedAt": "2026-06-30",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/spain/islas-baleares/menorca/2026-06-30/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/spain/islas-baleares/menorca/2026-06-30/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "mexico-city-distrito-federal",
+    "city": "Mexico City",
+    "region": "Distrito Federal",
+    "country": "Mexico",
+    "scrapedAt": "2026-06-15",
+    "currency": "MXN",
+    "summaryUrl": "https://data.insideairbnb.com/mexico/df/mexico-city/2026-06-15/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/mexico/df/mexico-city/2026-06-15/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "mid-north-coast-new-south-wales",
+    "city": "Mid North Coast",
+    "region": "New South Wales",
+    "country": "Australia",
+    "scrapedAt": "2026-07-16",
+    "currency": "AUD",
+    "summaryUrl": "https://data.insideairbnb.com/australia/nsw/mid-north-coast/2026-07-16/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/australia/nsw/mid-north-coast/2026-07-16/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "milan-lombardy",
+    "city": "Milan",
+    "region": "Lombardy",
+    "country": "Italy",
+    "scrapedAt": "2026-06-25",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/italy/lombardy/milan/2026-06-25/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/italy/lombardy/milan/2026-06-25/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "montreal-quebec",
+    "city": "Montreal",
+    "region": "Quebec",
+    "country": "Canada",
+    "scrapedAt": "2026-06-15",
+    "currency": "CAD",
+    "summaryUrl": "https://data.insideairbnb.com/canada/qc/montreal/2026-06-15/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/canada/qc/montreal/2026-06-15/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "mornington-peninsula-victoria",
+    "city": "Mornington Peninsula",
+    "region": "Victoria",
+    "country": "Australia",
+    "scrapedAt": "2026-06-22",
+    "currency": "AUD",
+    "summaryUrl": "https://data.insideairbnb.com/australia/vic/mornington-peninsula/2026-06-22/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/australia/vic/mornington-peninsula/2026-06-22/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "munich-bavaria",
+    "city": "Munich",
+    "region": "Bavaria",
+    "country": "Germany",
+    "scrapedAt": "2026-06-29",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/germany/bv/munich/2026-06-29/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/germany/bv/munich/2026-06-29/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "nairobi-nairobi",
+    "city": "Nairobi",
+    "region": "Nairobi",
+    "country": "Kenya",
+    "scrapedAt": "2026-06-15",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/kenya/nairobi/nairobi/2026-06-15/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/kenya/nairobi/nairobi/2026-06-15/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "naples-campania",
+    "city": "Naples",
+    "region": "Campania",
+    "country": "Italy",
+    "scrapedAt": "2026-06-25",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/italy/campania/naples/2026-06-25/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/italy/campania/naples/2026-06-25/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "nashville-tennessee",
+    "city": "Nashville",
+    "region": "Tennessee",
+    "country": "United States",
+    "scrapedAt": "2026-06-26",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/united-states/tn/nashville/2026-06-26/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-states/tn/nashville/2026-06-26/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "new-brunswick-new-brunswick",
+    "city": "New Brunswick",
+    "region": "New Brunswick",
+    "country": "Canada",
+    "scrapedAt": "2026-06-30",
+    "currency": "CAD",
+    "summaryUrl": "https://data.insideairbnb.com/canada/nb/new-brunswick/2026-06-30/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/canada/nb/new-brunswick/2026-06-30/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "new-orleans-louisiana",
+    "city": "New Orleans",
+    "region": "Louisiana",
+    "country": "United States",
+    "scrapedAt": "2026-06-16",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/united-states/la/new-orleans/2026-06-16/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-states/la/new-orleans/2026-06-16/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "new-york-city-new-york",
+    "city": "New York City",
+    "region": "New York",
+    "country": "United States",
+    "scrapedAt": "2026-08-10",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/united-states/ny/new-york-city/2026-08-10/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-states/ny/new-york-city/2026-08-10/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "new-zealand-new-zealand",
+    "city": "New Zealand",
+    "region": null,
+    "country": "new-zealand",
+    "scrapedAt": "2026-07-12",
+    "currency": "NZD",
+    "summaryUrl": "https://data.insideairbnb.com/new-zealand/2026-07-12/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/new-zealand/2026-07-12/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "newark-new-jersey",
+    "city": "Newark",
+    "region": "New Jersey",
+    "country": "United States",
+    "scrapedAt": "2026-06-30",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/united-states/nj/newark/2026-06-30/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-states/nj/newark/2026-06-30/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "northern-rivers-new-south-wales",
+    "city": "Northern Rivers",
+    "region": "New South Wales",
+    "country": "Australia",
+    "scrapedAt": "2026-06-24",
+    "currency": "AUD",
+    "summaryUrl": "https://data.insideairbnb.com/australia/nsw/northern-rivers/2026-06-24/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/australia/nsw/northern-rivers/2026-06-24/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "oakland-california",
+    "city": "Oakland",
+    "region": "California",
+    "country": "United States",
+    "scrapedAt": "2026-06-27",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/united-states/ca/oakland/2026-06-27/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-states/ca/oakland/2026-06-27/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "oslo-oslo",
+    "city": "Oslo",
+    "region": "Oslo",
+    "country": "Norway",
+    "scrapedAt": "2026-06-30",
+    "currency": "NOK",
+    "summaryUrl": "https://data.insideairbnb.com/norway/oslo/oslo/2026-06-30/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/norway/oslo/oslo/2026-06-30/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "ottawa-ontario",
+    "city": "Ottawa",
+    "region": "Ontario",
+    "country": "Canada",
+    "scrapedAt": "2026-06-24",
+    "currency": "CAD",
+    "summaryUrl": "https://data.insideairbnb.com/canada/on/ottawa/2026-06-24/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/canada/on/ottawa/2026-06-24/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "pacific-grove-california",
+    "city": "Pacific Grove",
+    "region": "California",
+    "country": "United States",
+    "scrapedAt": "2026-06-14",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/united-states/ca/pacific-grove/2026-06-14/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-states/ca/pacific-grove/2026-06-14/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "paris-ile-de-france",
+    "city": "Paris",
+    "region": "Île-de-France",
+    "country": "France",
+    "scrapedAt": "2026-06-16",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/france/ile-de-france/paris/2026-06-16/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/france/ile-de-france/paris/2026-06-16/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "pays-basque-pyrenees-atlantiques",
+    "city": "Pays Basque",
+    "region": "Pyrénées-Atlantiques",
+    "country": "France",
+    "scrapedAt": "2026-06-23",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/france/pyrénées-atlantiques/pays-basque/2026-06-23/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/france/pyrénées-atlantiques/pays-basque/2026-06-23/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "portland-oregon",
+    "city": "Portland",
+    "region": "Oregon",
+    "country": "United States",
+    "scrapedAt": "2026-06-15",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/united-states/or/portland/2026-06-15/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-states/or/portland/2026-06-15/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "porto-norte",
+    "city": "Porto",
+    "region": "Norte",
+    "country": "Portugal",
+    "scrapedAt": "2026-06-23",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/portugal/norte/porto/2026-06-23/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/portugal/norte/porto/2026-06-23/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "prague-prague",
+    "city": "Prague",
+    "region": "Prague",
+    "country": "Czech Republic",
+    "scrapedAt": "2026-06-27",
+    "currency": "CZK",
+    "summaryUrl": "https://data.insideairbnb.com/czech-republic/prague/prague/2026-06-27/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/czech-republic/prague/prague/2026-06-27/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "puglia-puglia",
+    "city": "Puglia",
+    "region": "Puglia",
+    "country": "Italy",
+    "scrapedAt": "2026-06-30",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/italy/puglia/puglia/2026-06-30/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/italy/puglia/puglia/2026-06-30/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "quebec-city-quebec",
+    "city": "Quebec City",
+    "region": "Quebec",
+    "country": "Canada",
+    "scrapedAt": "2026-07-16",
+    "currency": "CAD",
+    "summaryUrl": "https://data.insideairbnb.com/canada/qc/quebec-city/2026-07-16/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/canada/qc/quebec-city/2026-07-16/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "rhode-island-rhode-island",
+    "city": "Rhode Island",
+    "region": "Rhode Island",
+    "country": "United States",
+    "scrapedAt": "2026-06-30",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/united-states/ri/rhode-island/2026-06-30/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-states/ri/rhode-island/2026-06-30/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "riga-riga",
+    "city": "Riga",
+    "region": "Riga",
+    "country": "Latvia",
+    "scrapedAt": "2026-06-30",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/latvia/riga/riga/2026-06-30/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/latvia/riga/riga/2026-06-30/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "rio-de-janeiro-rio-de-janeiro",
+    "city": "Rio de Janeiro",
+    "region": "Rio de Janeiro",
+    "country": "Brazil",
+    "scrapedAt": "2026-06-24",
+    "currency": "BRL",
+    "summaryUrl": "https://data.insideairbnb.com/brazil/rj/rio-de-janeiro/2026-06-24/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/brazil/rj/rio-de-janeiro/2026-06-24/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "rochester-new-york",
+    "city": "Rochester",
+    "region": "New York",
+    "country": "United States",
+    "scrapedAt": "2026-07-21",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/united-states/ny/rochester/2026-07-21/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-states/ny/rochester/2026-07-21/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "rome-lazio",
+    "city": "Rome",
+    "region": "Lazio",
+    "country": "Italy",
+    "scrapedAt": "2026-06-20",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/italy/lazio/rome/2026-06-20/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/italy/lazio/rome/2026-06-20/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "rotterdam-south-holland",
+    "city": "Rotterdam",
+    "region": "South Holland",
+    "country": "The Netherlands",
+    "scrapedAt": "2026-06-28",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/the-netherlands/south-holland/rotterdam/2026-06-28/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/the-netherlands/south-holland/rotterdam/2026-06-28/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "salem-or",
+    "city": "Salem",
+    "region": "OR",
+    "country": "United States",
+    "scrapedAt": "2026-06-28",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/united-states/or/salem-or/2026-06-28/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-states/or/salem-or/2026-06-28/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "san-diego-california",
+    "city": "San Diego",
+    "region": "California",
+    "country": "United States",
+    "scrapedAt": "2026-06-27",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/united-states/ca/san-diego/2026-06-27/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-states/ca/san-diego/2026-06-27/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "san-francisco-california",
+    "city": "San Francisco",
+    "region": "California",
+    "country": "United States",
+    "scrapedAt": "2026-06-14",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/united-states/ca/san-francisco/2026-06-14/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-states/ca/san-francisco/2026-06-14/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "san-mateo-county-california",
+    "city": "San Mateo County",
+    "region": "California",
+    "country": "United States",
+    "scrapedAt": "2026-06-27",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/united-states/ca/san-mateo-county/2026-06-27/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-states/ca/san-mateo-county/2026-06-27/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "santa-clara-county-california",
+    "city": "Santa Clara County",
+    "region": "California",
+    "country": "United States",
+    "scrapedAt": "2026-06-28",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/united-states/ca/santa-clara-county/2026-06-28/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-states/ca/santa-clara-county/2026-06-28/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "santa-cruz-county-california",
+    "city": "Santa Cruz County",
+    "region": "California",
+    "country": "United States",
+    "scrapedAt": "2026-06-30",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/united-states/ca/santa-cruz-county/2026-06-30/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-states/ca/santa-cruz-county/2026-06-30/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "santiago-region-metropolitana-de-santiago",
+    "city": "Santiago",
+    "region": "Región Metropolitana de Santiago",
+    "country": "Chile",
+    "scrapedAt": "2026-06-29",
+    "currency": "CLP",
+    "summaryUrl": "https://data.insideairbnb.com/chile/rm/santiago/2026-06-29/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/chile/rm/santiago/2026-06-29/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "sao-paulo-sao-paulo",
+    "city": "São Paulo",
+    "region": "São Paulo",
+    "country": "Brazil",
+    "scrapedAt": "2026-06-14",
+    "currency": "BRL",
+    "summaryUrl": "https://data.insideairbnb.com/brazil/sp/são-paulo/2026-06-14/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/brazil/sp/são-paulo/2026-06-14/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "seattle-washington",
+    "city": "Seattle",
+    "region": "Washington",
+    "country": "United States",
+    "scrapedAt": "2026-06-15",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/united-states/wa/seattle/2026-06-15/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-states/wa/seattle/2026-06-15/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "sevilla-andalucia",
+    "city": "Sevilla",
+    "region": "Andalucía",
+    "country": "Spain",
+    "scrapedAt": "2026-06-30",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/spain/andalucía/sevilla/2026-06-30/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/spain/andalucía/sevilla/2026-06-30/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "sicily-sicilia",
+    "city": "Sicily",
+    "region": "Sicilia",
+    "country": "Italy",
+    "scrapedAt": "2026-06-30",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/italy/sicilia/sicily/2026-06-30/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/italy/sicilia/sicily/2026-06-30/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "singapore-singapore",
+    "city": "Singapore",
+    "region": "Singapore",
+    "country": "Singapore",
+    "scrapedAt": "2026-06-29",
+    "currency": "SGD",
+    "summaryUrl": "https://data.insideairbnb.com/singapore/sg/singapore/2026-06-29/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/singapore/sg/singapore/2026-06-29/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "south-aegean-south-aegean",
+    "city": "South Aegean",
+    "region": "South Aegean",
+    "country": "Greece",
+    "scrapedAt": "2026-06-28",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/greece/south-aegean/south-aegean/2026-06-28/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/greece/south-aegean/south-aegean/2026-06-28/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "stockholm-stockholms-lan",
+    "city": "Stockholm",
+    "region": "Stockholms län",
+    "country": "Sweden",
+    "scrapedAt": "2026-06-30",
+    "currency": "SEK",
+    "summaryUrl": "https://data.insideairbnb.com/sweden/stockholms-län/stockholm/2026-06-30/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/sweden/stockholms-län/stockholm/2026-06-30/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "sunshine-coast-queensland",
+    "city": "Sunshine Coast",
+    "region": "Queensland",
+    "country": "Australia",
+    "scrapedAt": "2026-07-26",
+    "currency": "AUD",
+    "summaryUrl": "https://data.insideairbnb.com/australia/qld/sunshine-coast/2026-07-26/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/australia/qld/sunshine-coast/2026-07-26/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "sydney-new-south-wales",
+    "city": "Sydney",
+    "region": "New South Wales",
+    "country": "Australia",
+    "scrapedAt": "2026-06-16",
+    "currency": "AUD",
+    "summaryUrl": "https://data.insideairbnb.com/australia/nsw/sydney/2026-06-16/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/australia/nsw/sydney/2026-06-16/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "taipei-northern-taiwan",
+    "city": "Taipei",
+    "region": "Northern Taiwan",
+    "country": "Taiwan",
+    "scrapedAt": "2026-06-30",
+    "currency": "TWD",
+    "summaryUrl": "https://data.insideairbnb.com/taiwan/northern-taiwan/taipei/2026-06-30/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/taiwan/northern-taiwan/taipei/2026-06-30/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "tasmania-tasmania",
+    "city": "Tasmania",
+    "region": "Tasmania",
+    "country": "Australia",
+    "scrapedAt": "2026-06-15",
+    "currency": "AUD",
+    "summaryUrl": "https://data.insideairbnb.com/australia/tas/tasmania/2026-06-15/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/australia/tas/tasmania/2026-06-15/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "the-hague-south-holland",
+    "city": "The Hague",
+    "region": "South Holland",
+    "country": "The Netherlands",
+    "scrapedAt": "2026-06-28",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/the-netherlands/south-holland/the-hague/2026-06-28/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/the-netherlands/south-holland/the-hague/2026-06-28/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "thessaloniki-central-macedonia",
+    "city": "Thessaloniki",
+    "region": "Central Macedonia",
+    "country": "Greece",
+    "scrapedAt": "2026-06-29",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/greece/central-macedonia/thessaloniki/2026-06-29/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/greece/central-macedonia/thessaloniki/2026-06-29/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "tokyo-kanto",
+    "city": "Tokyo",
+    "region": "Kantō",
+    "country": "Japan",
+    "scrapedAt": "2026-06-30",
+    "currency": "JPY",
+    "summaryUrl": "https://data.insideairbnb.com/japan/kantō/tokyo/2026-06-30/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/japan/kantō/tokyo/2026-06-30/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "toronto-ontario",
+    "city": "Toronto",
+    "region": "Ontario",
+    "country": "Canada",
+    "scrapedAt": "2026-07-14",
+    "currency": "CAD",
+    "summaryUrl": "https://data.insideairbnb.com/canada/on/toronto/2026-07-14/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/canada/on/toronto/2026-07-14/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "trentino-trentino-alto-adige-sudtirol",
+    "city": "Trentino",
+    "region": "Trentino-Alto Adige/Südtirol",
+    "country": "Italy",
+    "scrapedAt": "2026-06-30",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/italy/trentino-alto-adige-südtirol/trentino/2026-06-30/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/italy/trentino-alto-adige-südtirol/trentino/2026-06-30/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "twin-cities-msa-minnesota",
+    "city": "Twin Cities MSA",
+    "region": "Minnesota",
+    "country": "United States",
+    "scrapedAt": "2026-06-27",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/united-states/mn/twin-cities-msa/2026-06-27/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-states/mn/twin-cities-msa/2026-06-27/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "valencia-valencia",
+    "city": "Valencia",
+    "region": "Valencia",
+    "country": "Spain",
+    "scrapedAt": "2026-06-26",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/spain/vc/valencia/2026-06-26/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/spain/vc/valencia/2026-06-26/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "vancouver-british-columbia",
+    "city": "Vancouver",
+    "region": "British Columbia",
+    "country": "Canada",
+    "scrapedAt": "2026-07-14",
+    "currency": "CAD",
+    "summaryUrl": "https://data.insideairbnb.com/canada/bc/vancouver/2026-07-14/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/canada/bc/vancouver/2026-07-14/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "vaud-vaud",
+    "city": "Vaud",
+    "region": "Vaud",
+    "country": "Switzerland",
+    "scrapedAt": "2026-07-12",
+    "currency": "CHF",
+    "summaryUrl": "https://data.insideairbnb.com/switzerland/vd/vaud/2026-07-12/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/switzerland/vd/vaud/2026-07-12/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "venice-veneto",
+    "city": "Venice",
+    "region": "Veneto",
+    "country": "Italy",
+    "scrapedAt": "2026-06-15",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/italy/veneto/venice/2026-06-15/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/italy/veneto/venice/2026-06-15/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "victoria-british-columbia",
+    "city": "Victoria",
+    "region": "British Columbia",
+    "country": "Canada",
+    "scrapedAt": "2026-07-24",
+    "currency": "CAD",
+    "summaryUrl": "https://data.insideairbnb.com/canada/bc/victoria/2026-07-24/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/canada/bc/victoria/2026-07-24/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "vienna-vienna",
+    "city": "Vienna",
+    "region": "Vienna",
+    "country": "Austria",
+    "scrapedAt": "2026-06-20",
+    "currency": "EUR",
+    "summaryUrl": "https://data.insideairbnb.com/austria/vienna/vienna/2026-06-20/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/austria/vienna/vienna/2026-06-20/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "washington-d-c",
+    "city": "Washington",
+    "region": "D.C.",
+    "country": "United States",
+    "scrapedAt": "2026-06-24",
+    "currency": "USD",
+    "summaryUrl": "https://data.insideairbnb.com/united-states/dc/washington-dc/2026-06-24/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/united-states/dc/washington-dc/2026-06-24/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "western-australia-western-australia",
+    "city": "Western Australia",
+    "region": "Western Australia",
+    "country": "Australia",
+    "scrapedAt": "2026-06-28",
+    "currency": "AUD",
+    "summaryUrl": "https://data.insideairbnb.com/australia/wa/western-australia/2026-06-28/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/australia/wa/western-australia/2026-06-28/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "winnipeg-manitoba",
+    "city": "Winnipeg",
+    "region": "Manitoba",
+    "country": "Canada",
+    "scrapedAt": "2026-06-22",
+    "currency": "CAD",
+    "summaryUrl": "https://data.insideairbnb.com/canada/mb/winnipeg/2026-06-22/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/canada/mb/winnipeg/2026-06-22/visualisations/neighbourhoods.geojson"
+  },
+  {
+    "slug": "zurich-zurich",
+    "city": "Zurich",
+    "region": "Zürich",
+    "country": "Switzerland",
+    "scrapedAt": "2026-06-30",
+    "currency": "CHF",
+    "summaryUrl": "https://data.insideairbnb.com/switzerland/zürich/zurich/2026-06-30/visualisations/listings.csv",
+    "neighbourhoodsUrl": "https://data.insideairbnb.com/switzerland/zürich/zurich/2026-06-30/visualisations/neighbourhoods.geojson"
+  }
+]
