@@ -1,8 +1,10 @@
-# BnB Pulse
+<img src="public/empyre-pulse-logo.png" alt="Empyre" width="96" />
+
+# Empyre Pulse
 
 Map what Airbnb hosts actually earn.
 
-Pick an area and BnB Pulse sweeps a grid of coordinates across it, asking Airbnb
+Pick an area and Empyre Pulse sweeps a grid of coordinates across it, asking Airbnb
 the same question its own host landing page asks — *how much could you earn
 here?* — once per cell. The result is an earnings heatmap built from Airbnb's own
 figures rather than a statistical reconstruction, painted progressively as the
@@ -18,7 +20,7 @@ question — AirDNA, Mashvisor — are closed and paid. The open alternatives ar
 one-off Kaggle notebooks rather than something you can point at your own market
 and use.
 
-BnB Pulse is that missing tool, and it is MIT licensed.
+Empyre Pulse is that missing tool, and it is MIT licensed.
 
 ## The two data sources
 

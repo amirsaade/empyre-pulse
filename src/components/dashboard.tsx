@@ -4,7 +4,8 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { HeatmapLayer, HexagonLayer } from "@deck.gl/aggregation-layers";
 import { PolygonLayer, ScatterplotLayer } from "@deck.gl/layers";
 import type { Layer, PickingInfo } from "@deck.gl/core";
-import { Activity, Layers, PanelLeftClose, SlidersHorizontal } from "lucide-react";
+import { PanelLeftClose, SlidersHorizontal } from "lucide-react";
+import Image from "next/image";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -364,10 +365,17 @@ export function Dashboard({ markets }: { markets: Market[] }) {
 
   const panel = (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-2 border-b border-border/60 px-4 py-3">
-        <Activity className="size-4 text-primary" />
+      <div className="flex items-center gap-2.5 border-b border-border/60 px-4 py-3">
+        <Image
+          src="/empyre-emblem.png"
+          alt="Empyre"
+          width={512}
+          height={512}
+          priority
+          className="size-7 shrink-0 object-contain"
+        />
         <div className="flex-1">
-          <div className="font-heading text-sm font-semibold leading-none">BnB Pulse</div>
+          <div className="font-heading text-sm font-semibold leading-none">Empyre Pulse</div>
           <div className="mt-1 text-[11px] text-muted-foreground">
             Short-term rental earnings heatmaps
           </div>
@@ -510,9 +518,15 @@ export function Dashboard({ markets }: { markets: Market[] }) {
       <div className="absolute inset-x-4 top-4 z-20 flex items-center gap-2 lg:hidden">
         <Sheet>
           <SheetTrigger asChild>
-            <Button className="gap-2 shadow-lg">
-              <Layers className="size-4" />
-              BnB Pulse
+            <Button variant="secondary" className="gap-2 shadow-lg">
+              <Image
+                src="/empyre-emblem.png"
+                alt=""
+                width={512}
+                height={512}
+                className="size-5 shrink-0 object-contain"
+              />
+              Empyre Pulse
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-[92vw] max-w-[380px] p-0">
