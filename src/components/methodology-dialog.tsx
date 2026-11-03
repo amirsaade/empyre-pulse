@@ -88,6 +88,25 @@ export function MethodologyDialog() {
             </section>
 
             <section className="space-y-2">
+              <h3 className="font-heading text-base font-semibold">
+                World store <span className="text-muted-foreground">(accumulated)</span>
+              </h3>
+              <p className="text-muted-foreground">
+                The World tab draws gross estimates already stored as JSON in this repo, one
+                currency at a time. Nothing is converted, and nothing is profit. Inside Airbnb
+                cells are the San Francisco model&apos;s annual gross divided down to a month for a
+                0.5° cell. Airbnb cells are that endpoint&apos;s own monthly gross. At world zoom
+                each cell is a fixed-size dot; zoom in and it becomes the 0.5° square that was
+                sampled. Colour runs from the 5th to the 95th percentile.
+              </p>
+              <p className="text-muted-foreground">
+                The collector prefers Inside Airbnb wherever a committed snapshot covers the cell,
+                and only then calls Airbnb. Those calls go out one at a time, about 25 seconds
+                apart and never under five, and the run stops outright on an HTTP 429 or 403.
+              </p>
+            </section>
+
+            <section className="space-y-2">
               <h3 className="font-heading text-base font-semibold">Reading it honestly</h3>
               <ul className="list-disc space-y-1.5 pl-5 text-muted-foreground">
                 <li>

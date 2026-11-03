@@ -176,6 +176,10 @@ exercises the throttle, the stops, and resume with a mocked fetch.
 Collected files under `data/collected/` may be committed directly on `dev` and
 on `main`. Other code changes do not: see below.
 
+## World tab
+
+The third tab draws what `npm run collect` has already stored. It shows one currency at a time, coloured from the 5th to the 95th percentile of gross monthly revenue. Zoomed out, each cell is a fixed-size dot. Zoomed in, the dot becomes the 0.5° square the collector sampled. The live scan does not write this store.
+
 ## Branching
 
 The app lives on `main`. `dev` is a long-lived branch created from `main`. It
@@ -201,6 +205,8 @@ src/app/api/store            Reads collected cells and the run-log summary
 src/app/api/place            Resolves a place name to a scan area
 src/app/api/markets/[slug]   Serves a parsed Inside Airbnb market
 src/components/dashboard.tsx Map, layers and panel state
+src/components/world-panel.tsx World tab over the collected cells
+src/app/api/collected    One currency of stored gross cells for that tab
 ```
 
 Next.js, TypeScript, Tailwind, shadcn/ui, MapLibre GL and deck.gl.

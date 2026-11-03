@@ -16,8 +16,11 @@ import { CityDataPanel } from "@/components/city-data-panel";
 import { LiveScanPanel, type ScanConfig } from "@/components/live-scan-panel";
 import { MapCanvas, type MapCanvasHandle } from "@/components/map-canvas";
 import { MethodologyDialog } from "@/components/methodology-dialog";
+import { WorldPanel } from "@/components/world-panel";
 import { useAreaScan } from "@/hooks/use-area-scan";
+import type { Comparable, RoomTypeCategory } from "@/lib/airbnb-estimate";
 import { HEATMAP_COLOR_RANGE, colorDomain, magma, normalize } from "@/lib/color";
+import type { CollectedResponse, MapEstimate } from "@/lib/collected-view";
 import { formatCompactMoney, formatCount, formatMoney } from "@/lib/format";
 import {
   summarizeMarket,
@@ -26,10 +29,13 @@ import {
   type MarketSummary,
 } from "@/lib/market-stats";
 import { boundsAround, type Bounds, type ScanCell } from "@/lib/scan";
-import type { Comparable } from "@/lib/airbnb-estimate";
 import { DEFAULT_MODEL, type Market, type MarketDataset, type ModelParams } from "@/lib/types";
 
-type Mode = "live" | "city";
+type Mode = "live" | "city" | "world";
+
+const WORLD_FOCUS: Bounds = { north: 78, south: -56, east: 179.9, west: -179.9 };
+/** Below this zoom a 0.5° square is only a few pixels, so the map draws a dot. */
+const WORLD_SQUARE_ZOOM = 5;
 
 type Hover = {
   x: number;
@@ -175,6 +181,41 @@ export function Dashboard({ markets }: { markets: Market[] }) {
     [summary],
   );
 
+  // --- Collected world store -------------------------------------------------
+  const [worldRoom, setWorldRoom] = useState<RoomTypeCategory>("ENTIRE_HOME");
+  const [worldCurrency, setWorldCurrency] = useState<string | null>(null);
+  const [worldData, setWorldData] = useState<CollectedResponse | null>(null);
+  const [worldLoading, setWorldLoading] = useState(false);
+  const [worldError, setWorldError] = useState<string | null>(null);
+  const [worldZoom, setWorldZoom] = useState(10);
+  const worldRequest = useRef(0);
+
+  const loadCollected = useCallback(async (currency: string | null, roomType: RoomTypeCategory) => {
+    const requestId = ++worldRequest.current;
+    setWorldLoading(true);
+    setWorldError(null);
+    try {
+      const params = new URLSearchParams({ roomType });
+      if (currency) params.set("currency", currency);
+      const res = await fetch(`/api/collected?${params}`);
+      const body = (await res.json()) as CollectedResponse & { error?: string };
+      if (!res.ok) throw new Error(body.error ?? "Could not load the store");
+      if (worldRequest.current !== requestId) return;
+      setWorldData(body);
+      setWorldCurrency(body.currency);
+    } catch (error) {
+      if (worldRequest.current !== requestId) return;
+      setWorldError(error instanceof Error ? error.message : "Could not load the store");
+    } finally {
+      if (worldRequest.current === requestId) setWorldLoading(false);
+    }
+  }, []);
+
+  const worldDomain = useMemo<[number, number]>(
+    () => colorDomain(worldData?.cells.map((cell) => cell.monthly) ?? []),
+    [worldData],
+  );
+
   const focusNeighbourhood = useCallback(
     (name: string) => {
       const points = summary?.points.filter((p) => p.neighbourhood === name) ?? [];
@@ -191,6 +232,92 @@ export function Dashboard({ markets }: { markets: Market[] }) {
 
   // --- Layers ----------------------------------------------------------------
   const layers = useMemo<Layer[]>(() => {
+    if (mode === "world") {
+      const cells = worldData?.cells ?? [];
+      if (cells.length === 0) return [];
+      const [low, high] = worldDomain;
+      const paint = (cell: MapEstimate): [number, number, number, number] => {
+        const [r, g, b] = magma(normalize(cell.monthly, low, high));
+        return [r, g, b, extruded ? 220 : 210];
+      };
+      const onHover = (info: PickingInfo<MapEstimate>) => {
+        if (!info.object) return setHover(null);
+        const cell = info.object;
+        const source =
+          cell.source === "inside-airbnb" ? "Inside Airbnb model" : "Airbnb host estimate";
+        setHover({
+          x: info.x,
+          y: info.y,
+          title: formatMoney(cell.monthly, cell.currency),
+          rows: [
+            { label: "Gross", value: "booking revenue / month" },
+            { label: "Source", value: source },
+            { label: "Nightly", value: formatMoney(cell.nightly, cell.currency) },
+            {
+              label: "Bedrooms",
+              value: cell.bedrooms < 0 ? "Not split" : String(cell.bedrooms),
+            },
+          ],
+          footer: `${cell.latitude.toFixed(1)}, ${cell.longitude.toFixed(1)}`,
+        });
+      };
+      // A 0.5° square is only a couple of pixels at world zoom. Draw a fixed
+      // dot there, and the square itself once the cell is large enough to read.
+      if (worldZoom < WORLD_SQUARE_ZOOM) {
+        return [
+          new ScatterplotLayer<MapEstimate>({
+            id: "world-dots",
+            data: cells,
+            pickable: true,
+            filled: true,
+            stroked: true,
+            radiusUnits: "pixels",
+            getRadius: 7,
+            radiusMinPixels: 6,
+            radiusMaxPixels: 9,
+            lineWidthMinPixels: 1,
+            getPosition: (cell) => [cell.longitude, cell.latitude],
+            getFillColor: paint,
+            getLineColor: [255, 255, 255, 200],
+            updateTriggers: { getFillColor: [low, high, extruded] },
+            onHover,
+          }),
+        ];
+      }
+      return [
+        new PolygonLayer<MapEstimate>({
+          id: "world-cells",
+          data: cells,
+          pickable: true,
+          extruded,
+          filled: true,
+          stroked: !extruded,
+          getLineColor: [255, 255, 255, 40],
+          getLineWidth: 1,
+          lineWidthUnits: "pixels",
+          getPolygon: (cell) => {
+            const halfH = cell.cellHeight / 2;
+            const halfW = cell.cellWidth / 2;
+            return [
+              [cell.longitude - halfW, cell.latitude - halfH],
+              [cell.longitude + halfW, cell.latitude - halfH],
+              [cell.longitude + halfW, cell.latitude + halfH],
+              [cell.longitude - halfW, cell.latitude + halfH],
+            ];
+          },
+          getFillColor: paint,
+          getElevation: (cell) => normalize(cell.monthly, low, high) * 900,
+          elevationScale: 1,
+          material: { ambient: 0.6, diffuse: 0.6, shininess: 32 },
+          updateTriggers: {
+            getFillColor: [low, high, extruded],
+            getElevation: [low, high],
+          },
+          onHover,
+        }),
+      ];
+    }
+
     if (mode === "live") {
       if (!scan.meta || scan.cells.length === 0) return [];
       const [low, high] = scanDomain;
@@ -351,6 +478,9 @@ export function Dashboard({ markets }: { markets: Market[] }) {
     ];
   }, [
     mode,
+    worldData,
+    worldDomain,
+    worldZoom,
     scan.cells,
     scan.meta,
     scan.comparables,
@@ -392,13 +522,26 @@ export function Dashboard({ markets }: { markets: Market[] }) {
       </div>
 
       <div className="px-4 pt-3">
-        <Tabs value={mode} onValueChange={(value) => setMode(value as Mode)}>
+        <Tabs
+          value={mode}
+          onValueChange={(value) => {
+            const next = value as Mode;
+            setMode(next);
+            if (next === "world") {
+              setFocus({ ...WORLD_FOCUS });
+              void loadCollected(worldCurrency, worldRoom);
+            }
+          }}
+        >
           <TabsList className="w-full">
-            <TabsTrigger value="live" className="flex-1 text-xs">
-              Airbnb live
+            <TabsTrigger value="live" className="flex-1 px-1 text-xs">
+              Live
             </TabsTrigger>
-            <TabsTrigger value="city" className="flex-1 text-xs">
-              City data
+            <TabsTrigger value="city" className="flex-1 px-1 text-xs">
+              City
+            </TabsTrigger>
+            <TabsTrigger value="world" className="flex-1 px-1 text-xs">
+              World
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -430,7 +573,8 @@ export function Dashboard({ markets }: { markets: Market[] }) {
                 setFocus(boundsAround(cell.latitude, cell.longitude, 3))
               }
             />
-          ) : (
+          ) : null}
+          {mode === "city" ? (
             <CityDataPanel
               markets={markets}
               selected={market}
@@ -446,7 +590,28 @@ export function Dashboard({ markets }: { markets: Market[] }) {
               domain={marketDomain}
               onFocusNeighbourhood={focusNeighbourhood}
             />
-          )}
+          ) : null}
+          {mode === "world" ? (
+            <WorldPanel
+              loading={worldLoading}
+              error={worldError}
+              data={worldData}
+              extruded={extruded}
+              onExtrudedChange={setExtruded}
+              onCurrencyChange={(currency) => {
+                setWorldCurrency(currency);
+                void loadCollected(currency, worldRoom);
+              }}
+              onRoomTypeChange={(roomType) => {
+                setWorldRoom(roomType);
+                void loadCollected(worldCurrency, roomType);
+              }}
+              onReload={() => void loadCollected(worldCurrency, worldRoom)}
+              onFrameWorld={() => setFocus({ ...WORLD_FOCUS })}
+              onFocusCell={(cell) => setFocus(boundsAround(cell.latitude, cell.longitude, 80))}
+              domain={worldDomain}
+            />
+          ) : null}
         </div>
       </ScrollArea>
 
@@ -465,6 +630,7 @@ export function Dashboard({ markets }: { markets: Market[] }) {
         onBoundsChange={(bounds) => {
           viewBounds.current = bounds;
         }}
+        onZoomChange={setWorldZoom}
         onReady={(handle) => {
           mapHandle.current = handle;
         }}
@@ -539,6 +705,11 @@ export function Dashboard({ markets }: { markets: Market[] }) {
           <Badge variant="secondary" className="shadow-lg">
             median{" "}
             {formatCompactMoney(scanStats.median, scanCurrency)}/mo
+          </Badge>
+        ) : null}
+        {mode === "world" && worldData && worldData.cells.length > 0 ? (
+          <Badge variant="secondary" className="shadow-lg">
+            {formatCount(worldData.cells.length)} gross cells
           </Badge>
         ) : null}
       </div>

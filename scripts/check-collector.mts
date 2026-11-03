@@ -3,6 +3,7 @@
  *   npm run check:collector
  */
 
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -23,6 +24,27 @@ import { buildLandGrid, formatCellId, snapToGrid, type EuropeCell } from "@/lib/
 import { buildOrderedGrid } from "@/lib/inside-airbnb-grid";
 import { readCursor, readRuns, resetCollectedRoot, setCollectedRoot, upsertEstimate } from "@/lib/store";
 
+function storeFingerprint(): string {
+  const root = path.join(process.cwd(), "data", "collected");
+  const files: string[] = [];
+  const walk = (dir: string) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else files.push(full);
+    }
+  };
+  walk(root);
+  files.sort();
+  const hash = createHash("sha256");
+  for (const file of files) {
+    hash.update(path.relative(root, file));
+    hash.update(fs.readFileSync(file));
+  }
+  return hash.digest("hex");
+}
+
+const storeBefore = storeFingerprint();
 let failed = 0;
 
 function check(condition: boolean, message: string): void {
@@ -279,10 +301,7 @@ for (const status of [429, 403] as const) {
 }
 
 resetCollectedRoot();
-const runsBytes = fs.statSync(path.join(process.cwd(), "data", "collected", "runs.jsonl")).size;
-const cursorText = fs.readFileSync(path.join(process.cwd(), "data", "collected", "cursor.json"), "utf8");
-const cellFiles = fs.readdirSync(path.join(process.cwd(), "data", "collected", "cells")).filter((name) => name.endsWith(".json"));
-check(runsBytes === 0 && cursorText === "null\n" && cellFiles.length === 0, "the check script does not write the repo store");
+check(storeFingerprint() === storeBefore, "the check script does not write the repo store");
 
 if (failed > 0) {
   console.error(`${failed} check(s) failed`);
