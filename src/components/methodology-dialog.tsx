@@ -88,6 +88,25 @@ export function MethodologyDialog() {
             </section>
 
             <section className="space-y-2">
+              <h3 className="font-heading text-base font-semibold">
+                World store <span className="text-muted-foreground">(accumulated)</span>
+              </h3>
+              <p className="text-muted-foreground">
+                Live scans and the background collector write gross estimates into a local SQLite
+                file. The World tab draws everything stored for one currency. Inside Airbnb cells
+                are the median modelled gross for a 1° cell, divided down to a month. Airbnb cells
+                are that endpoint&apos;s own monthly gross for the room type and bedroom count that
+                was asked. Currencies are never converted, so the colour scale always stays inside
+                one of them.
+              </p>
+              <p className="text-muted-foreground">
+                The collector prefers Inside Airbnb wherever a market covers the cell, and only
+                then calls Airbnb. Those calls go out one at a time, at least five seconds apart,
+                and the run stops outright on an HTTP 429 or 403.
+              </p>
+            </section>
+
+            <section className="space-y-2">
               <h3 className="font-heading text-base font-semibold">Reading it honestly</h3>
               <ul className="list-disc space-y-1.5 pl-5 text-muted-foreground">
                 <li>

@@ -9,6 +9,9 @@
     "lint": "eslint",
     "build:catalog": "node scripts/build-catalog.mjs",
     "snapshot": "tsx scripts/snapshot.mts",
+    "collect": "tsx scripts/collect.mts",
+    "verify:collector": "tsx --test src/lib/collect-policy.test.ts src/lib/world-grid.test.ts src/lib/collector.test.ts",
+    "build:grid": "node scripts/build-world-grid.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

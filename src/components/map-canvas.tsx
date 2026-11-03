@@ -50,7 +50,7 @@ export function MapCanvas({ layers, focus, pitched, onBoundsChange, onReady }: P
       style: BASEMAP_STYLE,
       center: [-118.35, 34.05],
       zoom: 10,
-      minZoom: 2,
+      minZoom: 1,
       maxZoom: 17,
       attributionControl: { compact: true },
     });

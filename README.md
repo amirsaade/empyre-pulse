@@ -72,9 +72,11 @@ npm install
 npm run dev
 ```
 
-Then open <http://localhost:44317>. No API keys, no `.env`, no database - the
-Airbnb endpoint needs only its public key and the basemap is CARTO's free dark
-style.
+Then open <http://localhost:44317>. No API keys and no `.env`. The Airbnb
+endpoint needs only its public key and the basemap is CARTO's free dark style.
+Gross estimates accumulate in a local SQLite file, `data/collected/estimates.sqlite`
+(Node 22's built-in `node:sqlite` — there is no database server). The World tab
+draws that file.
 
 Four markets ship pre-baked in `data/snapshots/` so the Inside Airbnb tab works
 offline; the other 119 download on first use and cache to `.cache/`.
@@ -89,6 +91,50 @@ offline; the other 119 download on first use and cache to `.cache/`.
 | `npm run lint` | ESLint |
 | `npm run build:catalog` | Refresh `src/data/markets.json` from Inside Airbnb |
 | `npm run snapshot -- <slug>` | Pre-bake a market for offline use |
+| `npm run collect` | Resume the background world collector (see below) |
+| `npm run collect -- --dry-run` | Print the next Airbnb cells without requesting them |
+| `npm run verify:collector` | Check throttle, stop, and grid-resume behaviour |
+
+## Background collector
+
+`npm run collect` is independent of anyone using the map. Each run does two
+things, then exits:
+
+1. Folds Inside Airbnb markets into the store. The four committed snapshots are
+   read from disk. After that it downloads at most one further market
+   (`--markets`, default 1). Listings become a median **gross** monthly figure
+   on the 1° cell they fall in.
+2. Walks a 1° grid of land cells, populated places first, oceans omitted. A cell
+   Inside Airbnb already covers is not requested. Anything else is one call to
+   `GetHostEstimateData`.
+
+Airbnb traffic from this command is deliberately boring:
+
+- One request in flight. No concurrency.
+- At least 5 seconds between requests, plus up to 2.5 seconds of random jitter
+  (`--delay-ms` cannot be set lower than 5000; `--jitter-ms` defaults to 2500).
+- A budget of 24 requests per run (`--budget`, maximum 120).
+- Exponential backoff after an error. The first failure waits one gap, the next
+  waits double, and so on.
+- The process stops on HTTP 429, HTTP 403, or 3 consecutive errors
+  (`--spike`). Progress records why. The next run refuses to continue until
+  you pass `--acknowledge-stop`.
+- A cell that is already stored and younger than 30 days (`--fresh-days`) is
+  not fetched again. An empty answer is stored too, so a dead coordinate is
+  not retried all week.
+
+```bash
+npm run collect -- --dry-run
+npm run collect -- --budget 24 --fresh-days 30
+npm run collect -- --acknowledge-stop
+```
+
+The walk resumes from the cursor in the SQLite file. Live scans keep their own
+cap (400 cells, 8 at a time) and also append into the same file. Figures stay
+in the currency they were collected in; the World tab never mixes currencies
+on one colour scale.
+
+Node 22 or newer is required for the built-in SQLite driver.
 
 Inside Airbnb re-scrapes each city roughly quarterly, which changes the download
 URLs. Re-run `npm run build:catalog` to pick up new scrapes.
@@ -101,9 +147,13 @@ src/lib/scan.ts              Grid construction over a bounding box
 src/lib/inside-airbnb.ts     CSV download, parse and cache
 src/lib/revenue.ts           The San Francisco occupancy model
 src/lib/market-stats.ts      Filtering and neighbourhood rollups
+src/lib/estimate-store.ts    Local SQLite store of gross estimates
+src/lib/collector.ts         Resumable world-grid collector
+src/lib/collect-policy.ts    Delay, backoff, and stop rules
 src/app/api/scan             Streams grid results as NDJSON
 src/app/api/place            Resolves a place name to a scan area
 src/app/api/markets/[slug]   Serves a parsed Inside Airbnb market
+src/app/api/collected        Serves the store for the World tab
 src/components/dashboard.tsx Map, layers and panel state
 ```
 

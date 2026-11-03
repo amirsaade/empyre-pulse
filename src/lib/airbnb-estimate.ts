@@ -182,6 +182,21 @@ function toEstimate(screen: RawScreen, currency: string): Estimate | null {
   };
 }
 
+/** HTTP or transport failure from GetHostEstimateData. `status` is null off-HTTP. */
+export class AirbnbRequestError extends Error {
+  readonly status: number | null;
+
+  constructor(message: string, status: number | null) {
+    super(message);
+    this.name = "AirbnbRequestError";
+    this.status = status;
+  }
+}
+
+export function airbnbStatus(error: unknown): number | null {
+  return error instanceof AirbnbRequestError ? error.status : null;
+}
+
 export async function fetchEstimate(
   query: EstimateQuery,
   signal?: AbortSignal,
@@ -195,7 +210,7 @@ export async function fetchEstimate(
     signal,
   });
 
-  if (!res.ok) throw new Error(`Airbnb responded ${res.status}`);
+  if (!res.ok) throw new AirbnbRequestError(`Airbnb responded ${res.status}`, res.status);
 
   const json = (await res.json()) as {
     errors?: unknown[];
@@ -203,7 +218,10 @@ export async function fetchEstimate(
   };
 
   if (json.errors?.length) {
-    throw new Error(`Airbnb GraphQL error: ${JSON.stringify(json.errors).slice(0, 200)}`);
+    throw new AirbnbRequestError(
+      `Airbnb GraphQL error: ${JSON.stringify(json.errors).slice(0, 200)}`,
+      null,
+    );
   }
 
   const screen = json.data?.presentation?.hostEstimate?.hostEstimateScreen;

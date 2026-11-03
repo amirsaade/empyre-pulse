@@ -4,6 +4,7 @@ import {
   fetchEstimateWithRetry,
   type RoomTypeCategory,
 } from "@/lib/airbnb-estimate";
+import { persistScanEstimate } from "@/lib/estimate-store";
 import {
   buildGrid,
   isValidBounds,
@@ -96,6 +97,18 @@ export async function POST(request: Request) {
             }
 
             filled++;
+            persistScanEstimate({
+              latitude: point.latitude,
+              longitude: point.longitude,
+              cellHeight: grid.cellHeight,
+              cellWidth: grid.cellWidth,
+              monthly: estimate.monthly,
+              nightly: estimate.nightly,
+              nights: estimate.nights,
+              currency: currency || "USD",
+              roomType: roomTypeCategory,
+              bedrooms,
+            });
             send({
               type: "cell",
               cell: {

@@ -40,5 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Cached Inside Airbnb downloads
+# Cached Inside Airbnb downloads and collector scratch
 .cache/
+
+# SQLite sidecars. The database itself (data/collected/estimates.sqlite) is the store.
+data/collected/*.sqlite-wal
+data/collected/*.sqlite-shm
