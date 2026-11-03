@@ -9,7 +9,7 @@
     "lint": "eslint",
     "build:catalog": "node scripts/build-catalog.mjs",
     "snapshot": "tsx scripts/snapshot.mts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
     "@deck.gl/aggregation-layers": "^9.4.0",
