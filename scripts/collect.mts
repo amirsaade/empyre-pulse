@@ -21,7 +21,8 @@ function integerFlag(name: string, fallback: number): number {
 
 if (process.argv.includes("--help")) {
   console.log(`Usage: npm run collect -- [--budget ${DEFAULT_BUDGET}] [--delay-ms ${DEFAULT_DELAY_MS}] [--jitter-ms ${DEFAULT_JITTER_MS}] [--fresh-days 30] [--room ENTIRE_HOME] [--bedrooms 2] [--currency EUR]`);
-  console.log("Budget is the number of Airbnb requests, including retries. It cannot exceed 60.");
+  console.log("Budget is the number of Airbnb requests, including retries. It cannot exceed 200.");
+  console.log("A Europe/Paris calendar day also caps every run combined at 200 requests.");
   process.exit(0);
 }
 

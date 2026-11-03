@@ -119,6 +119,12 @@ export type RunLogEntry = {
   cellsCollected: number;
   /** Cells stored this run, split by source. */
   cellsBySource: CellsBySource;
+  /**
+   * Airbnb HTTP attempts this run, including retries and empty responses.
+   * Lines written before this field existed are read back as stored Airbnb
+   * cells plus recorded errors.
+   */
+  airbnbAttempts: number;
   errors: RunError[];
   /** True when the sweep did not finish (budget, HTTP block, or error spike). */
   stopped: boolean;
@@ -132,6 +138,7 @@ export type RunLogSummary = {
   runs: number;
   cellsCollected: number;
   cellsBySource: CellsBySource;
+  airbnbAttempts: number;
   lastRunAt: string | null;
   lastStopReason: string | null;
   stoppedRuns: number;
@@ -558,11 +565,17 @@ function parseRun(value: unknown, where: string): RunLogEntry {
   ) {
     fail(`${where}.cellsBySource must sum to cellsCollected`);
   }
+  const errors = value.errors.map((entry, index) => parseRunError(entry, `${where}.errors[${index}]`));
+  const airbnbAttempts =
+    value.airbnbAttempts === undefined
+      ? cellsBySource["airbnb-host-estimate"] + errors.reduce((sum, error) => sum + error.count, 0)
+      : assertCount(value.airbnbAttempts, `${where}.airbnbAttempts`);
   return {
     date: assertTimestamp(value.date, `${where}.date`),
     cellsCollected,
     cellsBySource,
-    errors: value.errors.map((entry, index) => parseRunError(entry, `${where}.errors[${index}]`)),
+    airbnbAttempts,
+    errors,
     stopped: value.stopped,
     stopReason: assertStopReason(value.stopReason),
     prsOpened,
@@ -641,10 +654,12 @@ export function summarizeRuns(runs: readonly RunLogEntry[] = readRuns()): RunLog
   const prsOpened: string[] = [];
   const cellsBySource = emptyCellsBySource();
   let cellsCollected = 0;
+  let airbnbAttempts = 0;
   let stoppedRuns = 0;
 
   for (const run of runs) {
     cellsCollected += run.cellsCollected;
+    airbnbAttempts += run.airbnbAttempts;
     cellsBySource["airbnb-host-estimate"] += run.cellsBySource["airbnb-host-estimate"];
     cellsBySource["inside-airbnb"] += run.cellsBySource["inside-airbnb"];
     if (run.stopped) stoppedRuns += 1;
@@ -668,6 +683,7 @@ export function summarizeRuns(runs: readonly RunLogEntry[] = readRuns()): RunLog
     runs: runs.length,
     cellsCollected,
     cellsBySource,
+    airbnbAttempts,
     lastRunAt: runs.length > 0 ? runs[runs.length - 1].date : null,
     lastStopReason: runs.length > 0 ? runs[runs.length - 1].stopReason : null,
     stoppedRuns,
