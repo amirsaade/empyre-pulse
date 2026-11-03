@@ -9,6 +9,8 @@
     "lint": "eslint",
     "build:catalog": "node scripts/build-catalog.mjs",
     "snapshot": "tsx scripts/snapshot.mts",
+    "collect": "tsx scripts/collect.mts",
+    "check:collector": "tsx scripts/check-collector.mts",
     "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {

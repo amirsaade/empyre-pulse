@@ -89,14 +89,18 @@ offline; the other 119 download on first use and cache to `.cache/`.
 | `npm run lint` | ESLint |
 | `npm run build:catalog` | Refresh `src/data/markets.json` from Inside Airbnb |
 | `npm run snapshot -- <slug>` | Pre-bake a market for offline use |
+| `npm run collect` | Collect gross estimates onto the European grid |
+| `npm run check:collector` | Check throttle, stop, and resume without calling Airbnb |
 
 Inside Airbnb re-scrapes each city roughly quarterly, which changes the download
 URLs. Re-run `npm run build:catalog` to pick up new scrapes.
 
 ## Collected estimates
 
-A future collector can keep every gross figure it has already fetched. The live
-scan does not write this store yet, and nothing here calls Airbnb.
+`npm run collect` walks a 0.5° grid of Europe and stores every gross figure it
+keeps. The live scan does not write this store. The grid has 4248 land cells
+(9675 candidates; oceans are skipped). Land comes from a bundled Natural Earth
+1:110m country mask in `src/data/europe-land.json`, not from a keyed service.
 
 The store is JSON committed in the repo, rather than SQLite. A SQLite file is a
 binary blob: a collector cannot review it, and two runs cannot merge it. Text
@@ -118,7 +122,7 @@ data/collected/runs.jsonl      append-only run log
 - `lookupFreshness` reports whether that key is already stored and still inside
   the freshness window (default 30 days), so a collector can skip it.
 - `readCursor` / `writeCursor` / `clearCursor` persist the active grid sweep
-  (`sweepId`, next index, last cell id, total, and the query).
+  (`sweepId`, next index, last cell id, total, the query, and `stopReason`).
 - `appendRun` / `readRuns` / `summarizeRuns` append and read the run log.
 
 Each cell record holds `cellId`, `latitude`, `longitude`, gross `monthly`,
@@ -130,12 +134,44 @@ Room categories are `ENTIRE_HOME`, `PRIVATE_ROOM`, `SHARED_ROOM`, and
 (`Entire home/apt` → `ENTIRE_HOME`, and the same way for private, shared, and
 hotel rooms).
 
-A run-log line holds `date`, `cellsCollected`, `errors` (`status`, `message`,
-`count` — record HTTP 429 and 403 in `status`), `stopped` (the run halted
-before the sweep finished), and `prsOpened`.
+A run-log line holds `date`, `cellsCollected`, `cellsBySource`
+(`airbnb-host-estimate` and `inside-airbnb`), `errors` (`status`, `message`,
+`count` — record HTTP 429 and 403 in `status`), `stopped` (the sweep did not
+finish), `stopReason`, and `prsOpened`.
 
 `GET /api/store` returns the cells, the cursor, and a short summary of the run
-log. It is read-only. The committed store starts empty.
+log. It is read-only.
+
+### Collector
+
+```bash
+npm run collect -- --budget 45 --delay-ms 25000 --jitter-ms 5000 --fresh-days 30 --room ENTIRE_HOME --bedrooms 2 --currency EUR
+```
+
+Cells are ordered populated-first: local Inside Airbnb listings, then other
+cells inside that market's bounds, then land within 80 km of a European market
+in `src/data/markets.json`, then the remaining land. Oceans are not visited.
+The cursor in `data/collected/cursor.json` resumes the same sweep.
+
+A cell covered by a committed snapshot or a cached Inside Airbnb file
+(`.cache/markets`, same currency) is derived with the San Francisco model and
+stored as `inside-airbnb`. Monthly and nights there are the model's annual
+gross divided by 12. The summary files have no bedroom column, so the sample
+is every listing of the requested room type in the cell (at least 3). The
+collector does not download new Inside Airbnb dumps.
+
+Every other cell uses `GetHostEstimateData` through `src/lib/airbnb-estimate.ts`:
+
+- One request in flight.
+- The wait is the base delay plus random jitter, and it is never under 5 seconds. The default base is 25 seconds.
+- `--budget` counts every attempt, including retries. The default is 45. Values above 60 are rejected.
+- Transient HTTP failures back off exponentially. A 429 or 403 stops the run on that cell.
+- The run also stops after 3 consecutive Airbnb cell errors, or when errors exceed 20% of finished Airbnb cells once 5 cells have finished.
+- A stored cell younger than `--fresh-days` (default 30) is not fetched again.
+
+`stopReason` is `budget`, `complete`, `http-429`, `http-403`,
+`error-spike-consecutive`, or `error-spike-rate`. `npm run check:collector`
+exercises the throttle, the stops, and resume with a mocked fetch.
 
 Collected files under `data/collected/` may be committed directly on `dev` and
 on `main`. Other code changes do not: see below.
@@ -156,6 +192,7 @@ is never deleted.
 src/lib/airbnb-estimate.ts   Client for Airbnb's GetHostEstimateData
 src/lib/scan.ts              Grid construction over a bounding box
 src/lib/store.ts             Collected cells, cursor, and run log
+src/lib/collector.ts         European grid collector (one Airbnb call at a time)
 src/lib/inside-airbnb.ts     CSV download, parse and cache
 src/lib/revenue.ts           The San Francisco occupancy model
 src/lib/market-stats.ts      Filtering and neighbourhood rollups

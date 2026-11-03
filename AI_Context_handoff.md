@@ -100,6 +100,8 @@ data/collected/cells/*.json   One gross estimate per cell and query. Empty until
 data/collected/cursor.json    Grid resumption cursor. JSON `null` when idle.
 data/collected/runs.jsonl     Append-only collector run log (one JSON object
                               per line). Empty until the first run.
+src/data/europe-land.json     Bundled Natural Earth 1:110m Europe land mask.
+src/data/europe-market-cities.json  City points used to walk populated cells first.
 
 public/empyre-pulse-logo.png  Full logo (wordmark). Used in README + large UI.
 public/empyre-emblem.png      Emblem crop. Used at <=32px (header, mobile).
@@ -126,6 +128,11 @@ src/app/api/markets/[slug]/route.ts GET. Loads one market dataset (cache/net/sna
 
 src/lib/airbnb-estimate.ts    Client for Airbnb GetHostEstimateData. THE core integration. (§5)
 src/lib/store.ts              Collected cells, freshness, cursor, run log. (§6a)
+src/lib/europe-grid.ts        0.5° European land grid. Oceans omitted. (§6b)
+src/lib/inside-airbnb-grid.ts Local Inside Airbnb gross figures for grid cells.
+src/lib/collector.ts          Throttled collector. One Airbnb request at a time.
+scripts/collect.mts           `npm run collect`.
+scripts/check-collector.mts   Throttle, stop, and resume checks. No Airbnb calls.
 src/lib/scan.ts               Grid math over a bounding box; types for scan stream.
 src/lib/inside-airbnb.ts      MARKETS registry, CSV→MarketDataset, caching, fallback.
 src/lib/revenue.ts            "San Francisco Model" occupancy/revenue + median/percentile.
@@ -255,10 +262,9 @@ and update the two constants. This is the single most likely breakage.
 
 ## 6a. Collected estimate store
 
-Persisted gross estimates accumulate across collector runs. The live scan
-(`POST /api/scan`) does not write this store, and this layer never calls
-Airbnb. The collector itself is not built yet; `src/lib/store.ts` is the API it
-will use.
+Persisted gross estimates accumulate across collector runs (§6b). The live
+scan (`POST /api/scan`) does not write this store. `src/lib/store.ts` is the
+API the collector uses. The store module itself never calls Airbnb.
 
 **Why JSON files, not SQLite.** The rows have to be committed from a collector
 and reviewed in git. SQLite is a binary: diffs are opaque and two branches
@@ -302,23 +308,30 @@ Map Inside Airbnb room labels before writing: `Entire home/apt` →
 not fresh. A collector uses `fresh === true` to skip a cell.
 
 **Cursor.** One active sweep in `cursor.json`. `writeCursor({ sweepId,
-nextIndex, lastCellId, total, roomTypeCategory, bedrooms, currency, source })`
-sets `updatedAt`. `readCursor()` returns the cursor or `null`. `clearCursor()`
-writes `null` when the sweep is done. `nextIndex === total` means the grid was
-finished; `nextIndex` cannot exceed `total`.
+nextIndex, lastCellId, total, roomTypeCategory, bedrooms, currency, source,
+stopReason })` sets `updatedAt`. `stopReason` is null while a run is in
+progress. `readCursor()` returns the cursor or `null`. `clearCursor()` writes
+`null`. `nextIndex === total` means the grid was finished; `nextIndex` cannot
+exceed `total`. The cursor `source` for the Europe sweep is
+`airbnb-host-estimate` (the remote query). Inside Airbnb cells are still stored
+under their own source.
 
 **Run log.** `appendRun` adds one line and does not rewrite older lines.
 `readRuns` returns them oldest first. Each entry:
 
 - `date` — ISO-8601
-- `cellsCollected`
+- `cellsCollected` — total stored this run
+- `cellsBySource` — `{ "airbnb-host-estimate", "inside-airbnb" }`, sums to `cellsCollected`
 - `errors[]` — `{ status, message, count }`. Put HTTP 429 and 403 in `status`
   (`null` when the failure had no status). `count` is how many times it happened.
-- `stopped` — true when the run halted before the sweep finished
+- `stopped` — true when the sweep did not finish
+- `stopReason` — `budget`, `complete`, `http-429`, `http-403`,
+  `error-spike-consecutive`, or `error-spike-rate`
 - `prsOpened` — pull request URLs (or other ids) opened for that run's data
 
-`summarizeRuns` rolls that up to run count, cells collected, last run time,
-stopped runs, error counts by status, and the PR list.
+`summarizeRuns` rolls that up to run count, cells collected, cells by source,
+last run time, last stop reason, stopped runs, error counts by status, and the
+PR list.
 
 **Read API.** `GET /api/store` (nodejs, `force-dynamic`, `cache-control:
 no-store`) returns `{ cells, cellCount, cursor, runLog }` where `runLog` is the
@@ -329,6 +342,67 @@ curl -s http://127.0.0.1:44317/api/store
 ```
 
 An empty store is `{ "cells": [], "cellCount": 0, "cursor": null, "runLog": { ... zeros ... } }`.
+
+---
+
+## 6b. European collector
+
+`npm run collect` (`scripts/collect.mts` → `runCollector` in `src/lib/collector.ts`)
+fills the store. It does not change the interactive scan, which stays at 8
+concurrent requests and a 400-cell cap.
+
+**Grid.** 0.5° cells from 34°N–72°N and 25°W–40°E. A cell is kept when its
+center or a point 0.2° from the center is inside the bundled land mask
+(`src/data/europe-land.json`, Natural Earth 1:110m public-domain countries,
+plus boxes for microstates and islands the 110m coastline drops). That is
+**4248 land cells** out of 9675 candidates. Oceans are not visited. Order:
+
+1. Cells with at least 3 local Inside Airbnb listings of the requested room type.
+2. Other cells inside that dataset's bounding box (covered, nothing to store, no Airbnb call).
+3. Land within 80 km of a European market city (`src/data/europe-market-cities.json`, the European rows of `src/data/markets.json`).
+4. Remaining land, west to east is not the sort; distance to the nearest market city is.
+
+The sweep id is `europe-v1-0.5-<room>-<bedrooms>-<currency>-<snapshot stamp>`.
+A matching cursor with `nextIndex < total` resumes there, including after
+`http-429` / `http-403` (the blocked cell is retried). A finished sweep starts
+again at 0 and skips fresh cells.
+
+**Inside Airbnb first.** For a European market whose currency matches the run,
+load `data/snapshots/<slug>.json` if present, otherwise
+`.cache/markets/<slug>-<scrapedAt>.json`. Do not download. Derive with
+`estimateNightsBooked` / the default San Francisco model. Store
+`source: "inside-airbnb"`. `monthly` and `nights` are the annual gross divided
+by 12; `nightly` is the median listed price. All three are gross. Summary CSVs
+have no bedroom column, so the sample is the room type only and the record is
+tagged with the configured bedroom count (default 2). Paris is the European
+snapshot shipped today, and it covers two cells (`49.0,2.0` and `49.0,2.5`).
+
+**Airbnb for the rest.** `fetchEstimate` in `src/lib/airbnb-estimate.ts`, never
+`fetchEstimateWithRetry` (that helper retries 429 quickly and is for the
+interactive scan only).
+
+- Exactly one request in flight.
+- Wait `max(5000, delayMs + random * jitterMs)` before every attempt, including the first. Defaults: delay 25s, jitter 5s.
+- `--budget` default 45. Integers only. Above 60 throws. Every attempt, including a retry, consumes one.
+- Transient statuses 408, 425, 500, 502, 503, 504 and network errors back off to `gap * 2^(retry+1)`, up to 2 retries.
+- HTTP 429 or 403: stop immediately, leave `nextIndex` on that cell, `stopReason` `http-429` or `http-403`.
+- After a non-fatal cell failure, move past that cell. Stop when 3 consecutive Airbnb cells fail (`error-spike-consecutive`) or, once 5 cells have finished, when failures / finished > 0.2 (`error-spike-rate`). The 5-cell floor is what keeps a single error from always tripping the 20% rule.
+- Skip a cell whose record for the source about to be written is fresh. Default 30 days (`--fresh-days`).
+- Defaults: `ENTIRE_HOME`, 2 bedrooms, `EUR`. Airbnb accepts only `ENTIRE_HOME` and `PRIVATE_ROOM`.
+
+An empty Airbnb body (no supply) is not an error and is not stored. The cursor
+moves on.
+
+**Check without Airbnb.** `npm run check:collector` mocks fetch and sleep. It
+must stay green. Do not point it at the real store; it uses a temp directory.
+
+```bash
+npm run collect -- --budget 3
+```
+
+That is the smoke shape: at most 3 Airbnb attempts, full default spacing.
+Code changes after the collector landed go to `dev` via pull requests. Collected
+files under `data/collected/` may still be committed directly to `dev` and `main`.
 
 ---
 
@@ -411,6 +485,7 @@ npm run dev            # http://localhost:44317  (use -H 0.0.0.0 for remote prev
 npm run typecheck      # next typegen && tsc --noEmit — MUST be clean
 npm run lint           # eslint — MUST be clean
 npm run build          # production build sanity check for bigger changes
+npm run check:collector # throttle, stop, and resume. Does not call Airbnb.
 ```
 
 `LayoutProps` (and `PageProps` / `RouteContext`) are globals Next writes during
@@ -478,7 +553,8 @@ Other scripts: `npm run build:catalog` (refresh `src/data/markets.json`),
 - Don't present estimates as net profit; don't remove the gross-revenue caveats
   in `methodology-dialog.tsx` / README.
 - Don't widen Airbnb scan concurrency or the 400-cell cap — it's deliberately
-  polite to an undocumented endpoint.
+  polite to an undocumented endpoint. Don't run the collector with more than
+  one Airbnb request in flight, and don't raise its budget above 60.
 - Don't upgrade `maplibre-gl` past v5 or re-enable interleaved deck rendering
   without proving the map still draws.
 

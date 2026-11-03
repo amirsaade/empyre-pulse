@@ -87,11 +87,16 @@ export type GridCursor = {
   roomTypeCategory: StoredRoomTypeCategory;
   bedrooms: number;
   currency: string;
+  /** Remote query source for the sweep. Inside Airbnb cells are still stored separately. */
   source: EstimateSource;
+  /** Why the last run left this cursor. Null while a run is in progress. */
+  stopReason: string | null;
   updatedAt: string;
 };
 
-export type GridCursorInput = Omit<GridCursor, "updatedAt">;
+export type GridCursorInput = Omit<GridCursor, "updatedAt" | "stopReason"> & {
+  stopReason?: string | null;
+};
 
 export type RunError = {
   /** HTTP status when the failure was an HTTP error, including 429 and 403. */
@@ -101,13 +106,24 @@ export type RunError = {
   count: number;
 };
 
+export type CellsBySource = Record<EstimateSource, number>;
+
+export function emptyCellsBySource(): CellsBySource {
+  return { "airbnb-host-estimate": 0, "inside-airbnb": 0 };
+}
+
 export type RunLogEntry = {
   /** ISO-8601 time the run finished or stopped. */
   date: string;
+  /** Cells stored this run, across both sources. */
   cellsCollected: number;
+  /** Cells stored this run, split by source. */
+  cellsBySource: CellsBySource;
   errors: RunError[];
-  /** True when the run halted before the sweep finished. */
+  /** True when the sweep did not finish (budget, HTTP block, or error spike). */
   stopped: boolean;
+  /** Why the run ended. Null only on entries written before this field existed. */
+  stopReason: string | null;
   /** Pull requests opened for the data this run collected. */
   prsOpened: string[];
 };
@@ -115,16 +131,30 @@ export type RunLogEntry = {
 export type RunLogSummary = {
   runs: number;
   cellsCollected: number;
+  cellsBySource: CellsBySource;
   lastRunAt: string | null;
+  lastStopReason: string | null;
   stoppedRuns: number;
   errorsByStatus: { status: number | null; count: number }[];
   prsOpened: string[];
 };
 
-export const collectedDir = path.join(process.cwd(), "data", "collected");
-export const cellsDir = path.join(collectedDir, "cells");
-export const cursorPath = path.join(collectedDir, "cursor.json");
-export const runsPath = path.join(collectedDir, "runs.jsonl");
+let collectedDir = path.join(process.cwd(), "data", "collected");
+let cellsDir = path.join(collectedDir, "cells");
+let cursorPath = path.join(collectedDir, "cursor.json");
+let runsPath = path.join(collectedDir, "runs.jsonl");
+
+/** Point the store at another directory. The collector check script uses a temp dir. */
+export function setCollectedRoot(dir: string): void {
+  collectedDir = dir;
+  cellsDir = path.join(dir, "cells");
+  cursorPath = path.join(dir, "cursor.json");
+  runsPath = path.join(dir, "runs.jsonl");
+}
+
+export function resetCollectedRoot(): void {
+  setCollectedRoot(path.join(process.cwd(), "data", "collected"));
+}
 
 function fail(message: string): never {
   throw new StoreError(message);
@@ -428,6 +458,14 @@ export function lookupFreshness(key: EstimateKey, options: FreshnessOptions = {}
   };
 }
 
+function assertStopReason(value: unknown): string | null {
+  if (value == null) return null;
+  if (typeof value !== "string") fail("stopReason must be a string or null");
+  const reason = value.trim();
+  if (!reason || reason.length > 200) fail("stopReason must be 1–200 characters");
+  return reason;
+}
+
 function assertSweepId(value: unknown): string {
   if (typeof value !== "string") fail("sweepId must be a string");
   const sweepId = value.trim();
@@ -448,6 +486,7 @@ function parseCursor(value: unknown): GridCursor {
     bedrooms: assertBedrooms(value.bedrooms),
     currency: assertCurrency(value.currency),
     source: assertSource(value.source),
+    stopReason: assertStopReason(value.stopReason),
     updatedAt: assertTimestamp(value.updatedAt, "updatedAt"),
   };
   if (cursor.total !== null && cursor.nextIndex > cursor.total) {
@@ -511,12 +550,37 @@ function parseRun(value: unknown, where: string): RunLogEntry {
     }
     return entry.trim();
   });
+  const cellsCollected = assertCount(value.cellsCollected, `${where}.cellsCollected`);
+  const cellsBySource = parseCellsBySource(value.cellsBySource, where);
+  if (
+    value.cellsBySource !== undefined &&
+    cellsBySource["airbnb-host-estimate"] + cellsBySource["inside-airbnb"] !== cellsCollected
+  ) {
+    fail(`${where}.cellsBySource must sum to cellsCollected`);
+  }
   return {
     date: assertTimestamp(value.date, `${where}.date`),
-    cellsCollected: assertCount(value.cellsCollected, `${where}.cellsCollected`),
+    cellsCollected,
+    cellsBySource,
     errors: value.errors.map((entry, index) => parseRunError(entry, `${where}.errors[${index}]`)),
     stopped: value.stopped,
+    stopReason: assertStopReason(value.stopReason),
     prsOpened,
+  };
+}
+
+function parseCellsBySource(value: unknown, where: string): CellsBySource {
+  if (value === undefined) return emptyCellsBySource();
+  if (!isRecord(value)) fail(`${where}.cellsBySource must be an object`);
+  return {
+    "airbnb-host-estimate": assertCount(
+      value["airbnb-host-estimate"] ?? 0,
+      `${where}.cellsBySource.airbnb-host-estimate`,
+    ),
+    "inside-airbnb": assertCount(
+      value["inside-airbnb"] ?? 0,
+      `${where}.cellsBySource.inside-airbnb`,
+    ),
   };
 }
 
@@ -575,11 +639,14 @@ export function readRuns(): RunLogEntry[] {
 export function summarizeRuns(runs: readonly RunLogEntry[] = readRuns()): RunLogSummary {
   const byStatus = new Map<number | null, number>();
   const prsOpened: string[] = [];
+  const cellsBySource = emptyCellsBySource();
   let cellsCollected = 0;
   let stoppedRuns = 0;
 
   for (const run of runs) {
     cellsCollected += run.cellsCollected;
+    cellsBySource["airbnb-host-estimate"] += run.cellsBySource["airbnb-host-estimate"];
+    cellsBySource["inside-airbnb"] += run.cellsBySource["inside-airbnb"];
     if (run.stopped) stoppedRuns += 1;
     for (const error of run.errors) {
       byStatus.set(error.status, (byStatus.get(error.status) ?? 0) + error.count);
@@ -600,7 +667,9 @@ export function summarizeRuns(runs: readonly RunLogEntry[] = readRuns()): RunLog
   return {
     runs: runs.length,
     cellsCollected,
+    cellsBySource,
     lastRunAt: runs.length > 0 ? runs[runs.length - 1].date : null,
+    lastStopReason: runs.length > 0 ? runs[runs.length - 1].stopReason : null,
     stoppedRuns,
     errorsByStatus,
     prsOpened,

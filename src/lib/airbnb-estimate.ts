@@ -182,6 +182,16 @@ function toEstimate(screen: RawScreen, currency: string): Estimate | null {
   };
 }
 
+export class AirbnbHttpError extends Error {
+  readonly status: number;
+
+  constructor(status: number) {
+    super(`Airbnb responded ${status}`);
+    this.name = "AirbnbHttpError";
+    this.status = status;
+  }
+}
+
 export async function fetchEstimate(
   query: EstimateQuery,
   signal?: AbortSignal,
@@ -195,7 +205,7 @@ export async function fetchEstimate(
     signal,
   });
 
-  if (!res.ok) throw new Error(`Airbnb responded ${res.status}`);
+  if (!res.ok) throw new AirbnbHttpError(res.status);
 
   const json = (await res.json()) as {
     errors?: unknown[];
