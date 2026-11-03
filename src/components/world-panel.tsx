@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import type { RoomTypeCategory } from "@/lib/airbnb-estimate";
-import type { CollectedResponse, MapEstimate } from "@/lib/estimate-record";
+import type { CollectedResponse, MapEstimate } from "@/lib/collected-view";
 import { formatCompactMoney, formatCount, formatMoney } from "@/lib/format";
 
 type Props = {
@@ -36,16 +36,17 @@ function stopLabel(reason: string | null): string {
   switch (reason) {
     case "budget":
       return "Last run paused at its request budget";
+    case "daily-cap":
+      return "Last run paused at the daily request cap";
     case "complete":
       return "Grid walk finished for this query";
-    case "http_429":
+    case "http-429":
       return "Stopped on HTTP 429";
-    case "http_403":
+    case "http-403":
       return "Stopped on HTTP 403";
-    case "error_spike":
+    case "error-spike-consecutive":
+    case "error-spike-rate":
       return "Stopped after repeated errors";
-    case "awaiting-markets":
-      return "Waiting on Inside Airbnb markets";
     default:
       return "No collector run recorded yet";
   }
@@ -65,11 +66,11 @@ export function WorldPanel({
   domain,
 }: Props) {
   const cells = data?.cells ?? [];
-  const currency = data?.currency ?? "USD";
+  const currency = data?.currency ?? "EUR";
   const sorted = [...cells].sort((a, b) => b.monthly - a.monthly);
   const median = sorted.length > 0 ? sorted[sorted.length >> 1].monthly : null;
   const inside = data?.counts.find((row) => row.source === "inside-airbnb")?.count ?? 0;
-  const airbnb = data?.counts.find((row) => row.source === "GetHostEstimateData")?.count ?? 0;
+  const airbnb = data?.counts.find((row) => row.source === "airbnb-host-estimate")?.count ?? 0;
 
   return (
     <div className="space-y-4">
@@ -86,7 +87,7 @@ export function WorldPanel({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {(data?.currencies.length ? data.currencies : [{ currency: "USD", count: 0 }]).map(
+              {(data?.currencies.length ? data.currencies : [{ currency: "EUR", count: 0 }]).map(
                 (row) => (
                   <SelectItem key={row.currency} value={row.currency}>
                     {row.count > 0 ? `${row.currency} (${formatCount(row.count)})` : row.currency}
@@ -154,7 +155,7 @@ export function WorldPanel({
                     className="flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-accent"
                   >
                     <span className="truncate text-xs">
-                      {cell.marketSlug ?? `${cell.latitude.toFixed(1)}, ${cell.longitude.toFixed(1)}`}
+                      {cell.latitude.toFixed(1)}, {cell.longitude.toFixed(1)}
                     </span>
                     <span className="shrink-0 font-mono text-xs tabular-nums">
                       {formatMoney(cell.monthly, currency)}
@@ -169,28 +170,22 @@ export function WorldPanel({
 
       {data && !loading && cells.length === 0 ? (
         <p className="text-xs leading-relaxed text-muted-foreground">
-          Nothing stored for {currency} yet. Live scans accumulate here, and{" "}
+          Nothing stored for {currency} yet.{" "}
           <code className="rounded bg-muted px-1 py-0.5 text-[11px]">npm run collect</code> walks
-          the rest of the world in the background.
+          the European land grid and keeps the gross figures here.
         </p>
       ) : null}
 
       <div className="space-y-1.5 rounded-lg border border-border/60 bg-card/40 px-3 py-2">
-        <div className="text-xs font-medium">{stopLabel(data?.progress?.lastStopReason ?? null)}</div>
-        {data?.progress?.lastStopDetail ? (
-          <p className="text-[11px] leading-relaxed text-muted-foreground">
-            {data.progress.lastStopDetail}
-          </p>
-        ) : (
-          <p className="text-[11px] leading-relaxed text-muted-foreground">
-            The collector is one Airbnb request at a time, at least five seconds apart, and it
-            stops on a 429 or 403.
-          </p>
-        )}
+        <div className="text-xs font-medium">{stopLabel(data?.progress?.stopReason ?? null)}</div>
+        <p className="text-[11px] leading-relaxed text-muted-foreground">
+          The collector is one Airbnb request at a time, about 25 seconds apart and never under
+          five, and it stops on a 429 or 403.
+        </p>
         {data?.progress ? (
           <p className="font-mono text-[11px] text-muted-foreground">
-            cursor {formatCount(data.progress.gridCursor)}/{formatCount(data.progress.gridLength)} ·{" "}
-            {formatCount(data.progress.totalAirbnbRequests)} Airbnb requests
+            cursor {formatCount(data.progress.nextIndex)}/{formatCount(data.progress.total)} ·{" "}
+            {data.cellDegrees}° cells
           </p>
         ) : null}
       </div>

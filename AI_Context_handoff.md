@@ -8,9 +8,12 @@
 
 ## 0. TL;DR operating rules (do not violate without reason)
 
-1. **The app code lives on branch `cursor/airbnb-earnings-heatmap-6a03`.** The
-   `main` branch currently holds only a seed commit. Do not assume `main` has
-   the app. Confirm with `git branch --show-current` and `git ls-files`.
+1. **The app lives on `main`.** `dev` is a long-lived branch created from
+   `main` and is never deleted. Code changes go to `dev` via pull requests and
+   need Amir's yes before they merge into `main`. Collected data files under
+   `data/collected/` may be committed directly to both `dev` and `main`. Do not
+   delete or force-push either branch. Confirm with `git branch --show-current`
+   and `git ls-files`.
 2. **Dev server runs on port `44317`.** Never 3000. Scripts hardcode it.
    For remote/preview access bind the host: `npx next dev -H 0.0.0.0 -p 44317`.
 3. **`maplibre-gl` is pinned to v5 (`^5.24.0`). Do NOT upgrade to v6+.** v6 drops
@@ -20,12 +23,12 @@
    conventions differ. When unsure, read `node_modules/next/dist/docs/`. The
    `AGENTS.md` agent-rules block is auto-written by `next dev`; commit it with
    your changes rather than fighting it.
-5. **No secrets, no `.env`, no database server.** The Airbnb endpoint is
-   unauthenticated (public key only); the basemap is CARTO's free style. If you
-   think you need a key, you are doing it wrong. Collected gross estimates are
-   the one exception to the old "no database" rule: they accumulate in a local
-   SQLite file via Node's built-in `node:sqlite` (see §13). Still no accounts,
-   no hosted database, no API keys. Node 22+ is required for that driver.
+5. **No secrets and no `.env`.** The Airbnb endpoint is unauthenticated
+   (public key only); the basemap is CARTO's free style. If you think you need a
+   key, you are doing it wrong. Collected estimate data is persisted as JSON
+   files in `data/collected/` (§6a). That supersedes the old "no database"
+   non-goal for collected data only. There is still no database server and no
+   user account state.
 6. **Verify before claiming done:** `npm run typecheck` and `npm run lint` must
    both pass clean. For behavior, hit the API directly with `curl` (see §9).
 7. **Gross revenue only.** Every number this app shows is gross booking revenue.
@@ -69,9 +72,8 @@ public, pushes restricted to the owner). License: MIT.
 | Command menu | cmdk | `^1.1.1` | market picker |
 | Tooling | eslint `^9` (`eslint-config-next`), tsx `^4.23` | | `tsx` runs the `.mts` snapshot script |
 
-There is **no Jest/Vitest**. `npm run verify:collector` runs Node's built-in
-test runner through `tsx` for the collector's throttle, stop, and resume rules.
-Everything else is typecheck + lint + manual/`curl`. Do not assume `npm test`.
+There is **no test framework** installed. Verification is typecheck + lint +
+manual/`curl` API checks. Do not assume `npm test` exists.
 
 ---
 
@@ -93,6 +95,13 @@ package.json                  Scripts + pinned deps.
 data/snapshots/*.json         Pre-baked Inside Airbnb markets (offline fallback):
                               austin-texas, new-york-city-new-york,
                               paris-ile-de-france, san-francisco-california.
+data/collected/cells/*.json   One gross estimate per cell and query. Empty until
+                              a collector writes. See §6a.
+data/collected/cursor.json    Grid resumption cursor. JSON `null` when idle.
+data/collected/runs.jsonl     Append-only collector run log (one JSON object
+                              per line). Empty until the first run.
+src/data/europe-land.json     Bundled Natural Earth 1:110m Europe land mask.
+src/data/europe-market-cities.json  City points used to walk populated cells first.
 
 public/empyre-pulse-logo.png  Full logo (wordmark). Used in README + large UI.
 public/empyre-emblem.png      Emblem crop. Used at <=32px (header, mobile).
@@ -100,17 +109,9 @@ public/*.svg                  Default Next placeholders (unused, harmless).
 
 scripts/build-catalog.mjs     Regenerates src/data/markets.json by scraping the
                               Inside Airbnb "Get the Data" index. `npm run build:catalog`.
-scripts/build-world-grid.mjs  Regenerates the land mask, population grid, and
-                              Inside Airbnb reservation anchors. `npm run build:grid`.
 scripts/snapshot.mts          Bakes a market CSV into data/snapshots/<slug>.json.
                               `npm run snapshot -- <slug> [...]`. ESM (.mts) for
                               top-level await; run via tsx.
-scripts/collect.mts           Background world collector. `npm run collect`. (§13)
-
-data/grid/land-mask-1deg.bin  1° land bitset (Natural Earth 110m). Oceans are off.
-data/grid/population-1deg.json  Max GeoNames population per land cell.
-data/grid/market-anchors.json Reservation circles for the 123 Inside Airbnb markets.
-data/collected/estimates.sqlite  The gross-estimate store. WAL/SHM are gitignored.
 
 src/app/layout.tsx            Root layout. Dark mode (<html class="dark">), metadata,
                               fonts. Title "Empyre Pulse — ...".
@@ -120,19 +121,20 @@ src/app/globals.css           Tailwind v4 + design tokens (oklch). Brand purple 
 src/app/icon.png              Favicon (emblem). src/app/apple-icon.png likewise.
 
 src/app/api/scan/route.ts         POST. Streams the live grid scan as NDJSON. (§4)
-                                  Successful cells are also upserted into the store.
-src/app/api/collected/route.ts    GET. World-tab payload for one currency + room type.
+src/app/api/store/route.ts        GET. Read-only cells, cursor, and run-log summary.
+src/app/api/collected/route.ts    GET. One currency of stored cells for the World tab.
+src/components/world-panel.tsx    World tab. Dots at world zoom, 0.5° squares closer in.
 src/app/api/place/route.ts        GET ?q=&currency=. Resolves place → bounds+headline.
 src/app/api/markets/route.ts      GET. Lists all Inside Airbnb markets.
 src/app/api/markets/[slug]/route.ts GET. Loads one market dataset (cache/net/snapshot).
 
 src/lib/airbnb-estimate.ts    Client for Airbnb GetHostEstimateData. THE core integration. (§5)
-src/lib/estimate-record.ts    Types for a stored gross estimate. Safe to import from client components.
-src/lib/estimate-store.ts     SQLite store. Server and collector only — imports `node:sqlite`.
-src/lib/collect-policy.ts     Pure delay / backoff / stop / resume decisions. No I/O.
-src/lib/collector.ts          One collector run. One Airbnb request in flight.
-src/lib/world-grid.ts         1° cell ids, land mask, population order, reservation test.
-src/lib/aggregate-market.ts   Inside Airbnb listings → median gross monthly per world cell.
+src/lib/store.ts              Collected cells, freshness, cursor, run log. (§6a)
+src/lib/europe-grid.ts        0.5° European land grid. Oceans omitted. (§6b)
+src/lib/inside-airbnb-grid.ts Local Inside Airbnb gross figures for grid cells.
+src/lib/collector.ts          Throttled collector. One Airbnb request at a time.
+scripts/collect.mts           `npm run collect`.
+scripts/check-collector.mts   Throttle, stop, and resume checks. No Airbnb calls.
 src/lib/scan.ts               Grid math over a bounding box; types for scan stream.
 src/lib/inside-airbnb.ts      MARKETS registry, CSV→MarketDataset, caching, fallback.
 src/lib/revenue.ts            "San Francisco Model" occupancy/revenue + median/percentile.
@@ -149,7 +151,6 @@ src/components/dashboard.tsx        TOP-LEVEL client orchestrator. Map + panels 
 src/components/map-canvas.tsx       MapLibre + deck.gl MapboxOverlay wrapper.
 src/components/live-scan-panel.tsx  "Airbnb live" tab UI (search, filters, scan, results).
 src/components/city-data-panel.tsx  "City data" tab UI (market picker, model sliders, ranks).
-src/components/world-panel.tsx     "World" tab UI. Reads /api/collected. Gross, one currency.
 src/components/legend.tsx           Color legend.
 src/components/methodology-dialog.tsx  Explains data sources/method.
 src/components/stat-tile.tsx        Single stat display.
@@ -183,10 +184,6 @@ End to end, "Airbnb live" tab:
    - `{type:"empty", index}` — valid "no supply here"
    - `{type:"error", index, message}`
    - `{type:"done", filled, empty, failed, elapsedMs}` last
-   A successful cell is also written to the SQLite store (`persistScanEstimate`)
-   with source `GetHostEstimateData`. That write is best-effort and does not
-   change `MAX_CELLS` (400) or `CONCURRENCY` (8). Empty scan cells are not stored;
-   the collector stores its own empties so it does not retry them.
    Response headers: `content-type: application/x-ndjson`, `cache-control: no-store`,
    `x-accel-buffering: no`. `maxDuration = 300`, `dynamic = "force-dynamic"`.
 5. **Render** (`dashboard.tsx` `layers` memo): a deck.gl `PolygonLayer<ScanCell>`
@@ -265,6 +262,156 @@ and update the two constants. This is the single most likely breakage.
 
 ---
 
+## 6a. Collected estimate store
+
+Persisted gross estimates accumulate across collector runs (§6b). The live
+scan (`POST /api/scan`) does not write this store. `src/lib/store.ts` is the
+API the collector uses. The store module itself never calls Airbnb.
+
+**Why JSON files, not SQLite.** The rows have to be committed from a collector
+and reviewed in git. SQLite is a binary: diffs are opaque and two branches
+cannot merge it. Pretty-printed JSON is text. One file per cell and query means
+an upsert rewrites only that record, so a commit shows the cells that run
+wrote and two collectors of different cells do not conflict. The run log is
+JSONL so each run is one appended line and history is not rewritten. No native
+module and no database server.
+
+```
+data/collected/cells/<slug>__<source>__<room>__<bedrooms>__<currency>__<hash>.json
+data/collected/cursor.json     null, or one GridCursor
+data/collected/runs.jsonl      append-only RunLogEntry lines
+```
+
+The committed tree ships the directory, `cursor.json` = `null`, and an empty
+`runs.jsonl`. No fixture cells.
+
+**Cell record** (`StoredEstimate`), all of these, gross figures only:
+
+- `cellId` — stable id chosen by the collector (not the in-memory scan index)
+- `latitude`, `longitude`
+- `monthly`, `nightly`, `nights` — gross booking revenue, never net/profit
+- `currency` — ISO 4217, stored uppercase
+- `roomTypeCategory` — `ENTIRE_HOME | PRIVATE_ROOM | SHARED_ROOM | HOTEL_ROOM`
+- `bedrooms` — integer 0..20
+- `source` — `airbnb-host-estimate` or `inside-airbnb`
+- `fetchedAt` — ISO-8601
+
+Map Inside Airbnb room labels before writing: `Entire home/apt` →
+`ENTIRE_HOME`, `Private room` → `PRIVATE_ROOM`, `Shared room` → `SHARED_ROOM`,
+`Hotel room` → `HOTEL_ROOM`.
+
+**Dedupe / upsert.** `upsertEstimate` replaces the record whose key is
+`cellId + source + roomTypeCategory + bedrooms + currency`. `readEstimate` /
+`readEstimates` read them back. Invalid files throw `StoreError`.
+
+**Freshness.** `lookupFreshness(key, { maxAgeMs, now })` returns
+`{ record, fetchedAt, ageMs, fresh }`. Missing records are not fresh. Default
+`maxAgeMs` is 30 days (`DEFAULT_FRESHNESS_MS`). A `fetchedAt` in the future is
+not fresh. A collector uses `fresh === true` to skip a cell.
+
+**Cursor.** One active sweep in `cursor.json`. `writeCursor({ sweepId,
+nextIndex, lastCellId, total, roomTypeCategory, bedrooms, currency, source,
+stopReason })` sets `updatedAt`. `stopReason` is null while a run is in
+progress. `readCursor()` returns the cursor or `null`. `clearCursor()` writes
+`null`. `nextIndex === total` means the grid was finished; `nextIndex` cannot
+exceed `total`. The cursor `source` for the Europe sweep is
+`airbnb-host-estimate` (the remote query). Inside Airbnb cells are still stored
+under their own source.
+
+**Run log.** `appendRun` adds one line and does not rewrite older lines.
+`readRuns` returns them oldest first. Each entry:
+
+- `date` — ISO-8601
+- `cellsCollected` — total stored this run
+- `cellsBySource` — `{ "airbnb-host-estimate", "inside-airbnb" }`, sums to `cellsCollected`
+- `errors[]` — `{ status, message, count }`. Put HTTP 429 and 403 in `status`
+  (`null` when the failure had no status). `count` is how many times it happened.
+- `stopped` — true when the sweep did not finish
+- `stopReason` — `budget`, `complete`, `http-429`, `http-403`,
+  `error-spike-consecutive`, or `error-spike-rate`
+- `prsOpened` — pull request URLs (or other ids) opened for that run's data
+
+`summarizeRuns` rolls that up to run count, cells collected, cells by source,
+last run time, last stop reason, stopped runs, error counts by status, and the
+PR list.
+
+**Read API.** `GET /api/store` (nodejs, `force-dynamic`, `cache-control:
+no-store`) returns `{ cells, cellCount, cursor, runLog }` where `runLog` is the
+summary. It does not write. `GET /api/collected?currency=EUR&roomType=ENTIRE_HOME`
+is the same store shaped for the World tab: one currency, gross monthly figures,
+and each cell tagged with the 0.5° size (`GRID_STEP`) so the map can draw the
+square. The tab draws a fixed-size dot until zoom 5, then the square. It does
+not write and does not call Airbnb. Verify the raw store with:
+
+```bash
+curl -s http://127.0.0.1:44317/api/store
+```
+
+An empty store is `{ "cells": [], "cellCount": 0, "cursor": null, "runLog": { ... zeros ... } }`.
+
+---
+
+## 6b. European collector
+
+`npm run collect` (`scripts/collect.mts` → `runCollector` in `src/lib/collector.ts`)
+fills the store. It does not change the interactive scan, which stays at 8
+concurrent requests and a 400-cell cap.
+
+**Grid.** 0.5° cells from 34°N–72°N and 25°W–40°E. A cell is kept when its
+center or a point 0.2° from the center is inside the bundled land mask
+(`src/data/europe-land.json`, Natural Earth 1:110m public-domain countries,
+plus boxes for microstates and islands the 110m coastline drops). That is
+**4248 land cells** out of 9675 candidates. Oceans are not visited. Order:
+
+1. Cells with at least 3 local Inside Airbnb listings of the requested room type.
+2. Other cells inside that dataset's bounding box (covered, nothing to store, no Airbnb call).
+3. Land within 80 km of a European market city (`src/data/europe-market-cities.json`, the European rows of `src/data/markets.json`).
+4. Remaining land, west to east is not the sort; distance to the nearest market city is.
+
+The sweep id is `europe-v1-0.5-<room>-<bedrooms>-<currency>-<snapshot stamp>`.
+A matching cursor with `nextIndex < total` resumes there, including after
+`http-429` / `http-403` (the blocked cell is retried). A finished sweep starts
+again at 0 and skips fresh cells.
+
+**Inside Airbnb first.** For a European market whose currency matches the run,
+load `data/snapshots/<slug>.json` if present, otherwise
+`.cache/markets/<slug>-<scrapedAt>.json`. Do not download. Derive with
+`estimateNightsBooked` / the default San Francisco model. Store
+`source: "inside-airbnb"`. `monthly` and `nights` are the annual gross divided
+by 12; `nightly` is the median listed price. All three are gross. Summary CSVs
+have no bedroom column, so the sample is the room type only and the record is
+tagged with the configured bedroom count (default 2). Paris is the European
+snapshot shipped today, and it covers two cells (`49.0,2.0` and `49.0,2.5`).
+
+**Airbnb for the rest.** `fetchEstimate` in `src/lib/airbnb-estimate.ts`, never
+`fetchEstimateWithRetry` (that helper retries 429 quickly and is for the
+interactive scan only).
+
+- Exactly one request in flight.
+- Wait `max(5000, delayMs + random * jitterMs)` before every attempt, including the first. Defaults: delay 25s, jitter 5s.
+- `--budget` default 45. Integers only. Above 60 throws. Every attempt, including a retry, consumes one.
+- Transient statuses 408, 425, 500, 502, 503, 504 and network errors back off to `gap * 2^(retry+1)`, up to 2 retries.
+- HTTP 429 or 403: stop immediately, leave `nextIndex` on that cell, `stopReason` `http-429` or `http-403`.
+- After a non-fatal cell failure, move past that cell. Stop when 3 consecutive Airbnb cells fail (`error-spike-consecutive`) or, once 5 cells have finished, when failures / finished > 0.2 (`error-spike-rate`). The 5-cell floor is what keeps a single error from always tripping the 20% rule.
+- Skip a cell whose record for the source about to be written is fresh. Default 30 days (`--fresh-days`).
+- Defaults: `ENTIRE_HOME`, 2 bedrooms, `EUR`. Airbnb accepts only `ENTIRE_HOME` and `PRIVATE_ROOM`.
+
+An empty Airbnb body (no supply) is not an error and is not stored. The cursor
+moves on.
+
+**Check without Airbnb.** `npm run check:collector` mocks fetch and sleep. It
+must stay green. Do not point it at the real store; it uses a temp directory.
+
+```bash
+npm run collect -- --budget 3
+```
+
+That is the smoke shape: at most 3 Airbnb attempts, full default spacing.
+Code changes after the collector landed go to `dev` via pull requests. Collected
+files under `data/collected/` may still be committed directly to `dev` and `main`.
+
+---
+
 ## 7. Conventions, gotchas, and hard-won fixes
 
 ### 7.1 Rendering / map
@@ -327,19 +474,35 @@ and update the two constants. This is the single most likely breakage.
 - `ScanEvent`: union of `meta | cell | empty | error | done` (see §4)
 - `MAX_CELLS = 400`, `RESOLUTION_OPTIONS = [6,8,10,12,16]`
 - `Estimate` / `Comparable`: see §5.
+- Collected store (`src/lib/store.ts`, §6a): `StoredEstimate`, `EstimateKey`,
+  `GridCursor`, `RunLogEntry`, `RunError`, `RunLogSummary`, `Freshness`.
+  Sources: `airbnb-host-estimate | inside-airbnb`. Dedupe is cell id plus
+  source, room type, bedrooms, and currency.
 
 ---
 
 ## 9. How to run and verify (do this every change)
 
 ```bash
-# from repo root, on branch cursor/airbnb-earnings-heatmap-6a03
+# from repo root. The app is on main; code changes land on dev via PR (§10).
 npm install
 npm run dev            # http://localhost:44317  (use -H 0.0.0.0 for remote preview)
 
-npm run typecheck      # tsc --noEmit — MUST be clean
+npm run typecheck      # next typegen && tsc --noEmit — MUST be clean
 npm run lint           # eslint — MUST be clean
 npm run build          # production build sanity check for bigger changes
+npm run check:collector # throttle, stop, and resume. Does not call Airbnb.
+```
+
+`LayoutProps` (and `PageProps` / `RouteContext`) are globals Next writes during
+`next dev`, `next build`, or `next typegen`. A fresh checkout has no `.next`,
+so `tsc` alone fails on `src/app/layout.tsx`. The typecheck script runs
+`next typegen` first. Do not commit `.next/` or `next-env.d.ts` (both gitignored).
+
+Read the collected store without calling Airbnb:
+
+```bash
+curl -s http://127.0.0.1:44317/api/store
 ```
 
 Verify the live scan without a browser (fast, deterministic):
@@ -361,40 +524,45 @@ drive a real browser (the human previews on port 44317; a `computerUse` agent ca
 operate the desktop Chrome).
 
 Other scripts: `npm run build:catalog` (refresh `src/data/markets.json`),
-`npm run snapshot -- <slug>` (bake an offline market),
-`npm run collect` (resume the world collector, §13),
-`npm run verify:collector` (throttle / stop / grid-resume checks, no Airbnb traffic).
+`npm run snapshot -- <slug>` (bake an offline market).
 
 ---
 
 ## 10. Git workflow
 
-- Branch naming in this project uses the `cursor/<desc>-6a03` convention; the
-  live app branch is `cursor/airbnb-earnings-heatmap-6a03`.
+- The app lives on `main`. `dev` is a long-lived branch created from `main`.
+  Never delete `dev` or `main`.
+- Code changes go to `dev` through pull requests. Merging `dev` (or any code
+  change) into `main` needs Amir's explicit yes.
+- Collected data files under `data/collected/` may be committed directly to
+  `dev` and directly to `main`. That is the exception to the PR rule, and it
+  applies only to those data files.
+- Do not force-push `main` or `dev`. Fast-forward `dev` to `main` only when
+  `dev` has no commits of its own.
 - Commit per logical change with a clear message; stage only related files
   (don't sweep in `.cache/`, `node_modules/`, scratch files).
-- `.gitignore` already excludes `.cache/`, `node_modules/`, `.next/`.
+- `.gitignore` already excludes `.cache/`, `node_modules/`, `.next/`, and
+  `next-env.d.ts`. Do commit `data/collected/` (cells, `cursor.json`,
+  `runs.jsonl`).
 - Binary assets (the logo PNGs) must go through a real `git push` — API/file
   tools that take string content will corrupt them.
-- Do not force-push shared branches or amend published history unless explicitly
-  asked.
+- Do not amend published history unless explicitly asked.
 
 ---
 
 ## 11. Non-goals / constraints (don't "helpfully" add these)
 
-- No auth, no hosted database, no server-side user accounts. The store in §13
-  is a local SQLite file, not a database server. Do not add a second store.
+- No auth and no server-side user state. Collected estimates are the one
+  persisted dataset, stored as committed JSON (§6a), not a database server.
+  Do not add a database server, an ORM, or user accounts.
 - No paid/keyed map provider; no second component library beyond shadcn/radix.
 - Don't present estimates as net profit; don't remove the gross-revenue caveats
-  in `methodology-dialog.tsx` / README. Do not FX-convert the world view.
+  in `methodology-dialog.tsx` / README.
 - Don't widen Airbnb scan concurrency or the 400-cell cap — it's deliberately
-  polite to an undocumented endpoint. The collector is a separate, stricter path.
-- Don't lower the collector's 5 second delay floor, overlap its requests, or
-  let it continue after a 429 or 403 without `--acknowledge-stop`.
+  polite to an undocumented endpoint. Don't run the collector with more than
+  one Airbnb request in flight, and don't raise its budget above 60.
 - Don't upgrade `maplibre-gl` past v5 or re-enable interleaved deck rendering
   without proving the map still draws.
-- Don't change `CELL_DEGREES` (1) once the store has rows. Cell ids would orphan.
 
 ---
 
@@ -402,84 +570,17 @@ Other scripts: `npm run build:catalog` (refresh `src/data/markets.json`),
 
 | Symptom | Most likely cause | Where to look |
 | --- | --- | --- |
-| `ERR_CONNECTION_REFUSED` on 44317 | dev server not running / fresh VM on empty `main` | checkout app branch, `npm install`, `npm run dev` |
+| `ERR_CONNECTION_REFUSED` on 44317 | dev server not running | `npm install`, `npm run dev` on `main` (port 44317) |
+| `TS2304 Cannot find name 'LayoutProps'` | `tsc` ran before Next generated route types | `npm run typecheck` (`next typegen` first). Do not hand-write the global |
 | Black map, page looks static | hydration blocked (dev origin) or maplibre v6 | `next.config.ts` allowedDevOrigins; confirm maplibre v5 |
 | All scan cells empty/errored | Airbnb rotated hash/key | `src/lib/airbnb-estimate.ts` constants (§5) |
 | City market 404/502 on load | Inside Airbnb re-scraped (URL changed) | `npm run build:catalog`; snapshot fallback covers 4 cities |
 | Lint fails on hooks | setState-in-effect / ref-in-render / deps | §7.3 |
 | deck layer type error on hover | composite `onHover` must return `false` | §7.3 |
 | `tsx`/snapshot script fails | wrong extension or not via tsx | keep `.mts`, run `npm run snapshot` |
-| `collect` exits 2 immediately | previous run stopped on 429, 403, or an error spike | read the detail in the store; resume with `--acknowledge-stop` |
-
----
-
-## 13. Collected estimates, the World tab, and the collector
-
-Later requirements superseded the "no database" line **for this store only**.
-Results have to accumulate across runs, including when nobody is searching.
-
-### Why SQLite
-
-A JSON file would be rewritten on every cell and is awkward to query for
-"is this cell fresh?". SQLite is one file, no server, no credentials, and Node
-22 already ships `node:sqlite`, so there is no native addon. The file is
-`data/collected/estimates.sqlite` and is committed so a fresh checkout has the
-seeded markets. `*.sqlite-wal` and `*.sqlite-shm` are gitignored. The collector
-checkpoints on exit.
-
-Each row stores: cell id, center coordinates, cell size in degrees, gross
-`monthly` / `nightly` / `nights`, currency, room type, bedrooms, source
-(`inside-airbnb` or `GetHostEstimateData`), `fetched_at`, and status
-(`estimate` or `empty`). Inside Airbnb has no bedroom column, so those rows
-use bedrooms `-1`. There is no FX conversion.
-
-### World tab
-
-`GET /api/collected?currency=&roomType=` returns gross cells for one currency
-and one room type. The map uses the existing non-interleaved `MapboxOverlay`
-and a `PolygonLayer` coloured with `colorDomain` at the 5th–95th percentile
-(`magma`). When both sources share a cell id, the Inside Airbnb figure is the
-one drawn. `minZoom` on the map is 1 so the world fits.
-
-### Collector (`npm run collect`)
-
-Independent of user searches. One run:
-
-1. Ingests any stale local snapshots, then at most `--markets` (default 1)
-   network markets. Listings are aggregated with the San Francisco Model
-   (`DEFAULT_MODEL`) to a median gross month (`annual / 12`). Three failed
-   downloads and that market is marked `skipped` so it stops blocking the walk.
-2. Walks land cells from `data/grid/`, highest population first. Oceans are
-   not in the list. A cell inside the reservation circle of a market that is
-   not ingested yet is deferred, not requested. A fresh Inside Airbnb row
-   covers the cell even when its currency differs from the Airbnb query.
-3. Calls `fetchEstimate` (not `fetchEstimateWithRetry` — that helper's short
-   backoff is only for interactive scans). Exactly one call is in flight.
-
-Politeness, enforced in `collect-policy.ts` and covered by
-`npm run verify:collector` (no network):
-
-| Rule | Default |
-| --- | --- |
-| Gap between requests | `--delay-ms` minimum **5000**, plus `--jitter-ms` 2500 random extra |
-| Requests per run | `--budget` 24, hard maximum 120 |
-| Error backoff | one gap, then double, then double again |
-| Hard stop | HTTP 429, HTTP 403, or `--spike` 3 consecutive errors |
-| Resume after a hard stop | refuses until `--acknowledge-stop` |
-| Freshness | `--fresh-days` 30, including stored empties |
-| Airbnb query | `ENTIRE_HOME`, 2 bedrooms, `USD` unless flagged |
-
-Progress (cursor, deferred indexes, stop reason) lives in the same SQLite file.
-`--dry-run` prints the next Airbnb cells and writes nothing.
-
-The grid is 1°. Changing it changes every cell id. Reservation radii in
-`market-anchors.json` are approximate (120km for a city, larger for regions
-such as New Zealand); ingested listing cells are the real coverage.
-
-Do not point a long unattended loop at Airbnb. A budget run is the unit of work.
 
 ---
 
 _Keep this file current. If you change the scan protocol, the Airbnb integration,
-the dataset shape, the port, the maplibre/deck setup, or the collector's rate
-limits, update the relevant section in the same commit._
+the dataset shape, the port, or the maplibre/deck setup, update the relevant
+section in the same commit._

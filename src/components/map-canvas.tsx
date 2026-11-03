@@ -25,22 +25,25 @@ type Props = {
   /** Extruded layers are unreadable from straight above, so tilt for them. */
   pitched: boolean;
   onBoundsChange?: (bounds: Bounds) => void;
+  onZoomChange?: (zoom: number) => void;
   onReady?: (handle: MapCanvasHandle) => void;
 };
 
-export function MapCanvas({ layers, focus, pitched, onBoundsChange, onReady }: Props) {
+export function MapCanvas({ layers, focus, pitched, onBoundsChange, onZoomChange, onReady }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const overlayRef = useRef<MapboxOverlay | null>(null);
 
   // Keep callbacks in refs so the map is created exactly once.
   const onBoundsChangeRef = useRef(onBoundsChange);
+  const onZoomChangeRef = useRef(onZoomChange);
   const onReadyRef = useRef(onReady);
 
   useEffect(() => {
     onBoundsChangeRef.current = onBoundsChange;
+    onZoomChangeRef.current = onZoomChange;
     onReadyRef.current = onReady;
-  }, [onBoundsChange, onReady]);
+  }, [onBoundsChange, onZoomChange, onReady]);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -75,6 +78,7 @@ export function MapCanvas({ layers, focus, pitched, onBoundsChange, onReady }: P
     const emit = () => {
       const bounds = readBounds();
       if (bounds) onBoundsChangeRef.current?.(bounds);
+      onZoomChangeRef.current?.(map.getZoom());
     };
 
     map.on("moveend", emit);

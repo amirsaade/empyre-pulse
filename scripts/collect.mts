@@ -1,90 +1,60 @@
-// Background world collector. One GetHostEstimateData request at a time.
-//
-//   npm run collect
-//   npm run collect -- --dry-run
-//   npm run collect -- --budget 24 --delay-ms 5000 --jitter-ms 2500 --fresh-days 30
-//   npm run collect -- --acknowledge-stop
-//
-// The delay cannot be set below 5000ms. A 429, a 403, or three consecutive
-// errors stop the process; the next run refuses to start until --acknowledge-stop.
+import { DEFAULT_BUDGET, DEFAULT_DELAY_MS, DEFAULT_JITTER_MS, runCollector } from "@/lib/collector";
+import type { StoredRoomTypeCategory } from "@/lib/store";
 
-import { ROOM_TYPE_CATEGORIES, type RoomTypeCategory } from "@/lib/airbnb-estimate";
-import { runCollector } from "@/lib/collector";
-import { isHardStop } from "@/lib/collect-policy";
-
-const argv = process.argv.slice(2);
-
-function has(flag: string): boolean {
-  return argv.includes(flag);
-}
-
-function value(flag: string): string | undefined {
-  const index = argv.indexOf(flag);
+function flag(name: string): string | undefined {
+  const index = process.argv.indexOf(name);
   if (index === -1) return undefined;
-  const next = argv[index + 1];
-  if (!next || next.startsWith("--")) return undefined;
-  return next;
-}
-
-function integer(flag: string, fallback: number): number {
-  const raw = value(flag);
-  if (raw === undefined) return fallback;
-  const parsed = Number(raw);
-  if (!Number.isInteger(parsed)) {
-    throw new Error(`${flag} must be an integer`);
+  const value = process.argv[index + 1];
+  if (!value || value.startsWith("--")) {
+    throw new Error(`Missing value for ${name}`);
   }
-  return parsed;
+  return value;
 }
 
-if (has("--help")) {
-  console.log(`Usage: npm run collect -- [options]
+function integerFlag(name: string, fallback: number): number {
+  const raw = flag(name);
+  if (raw === undefined) return fallback;
+  const value = Number(raw);
+  if (!Number.isInteger(value)) throw new Error(`${name} must be an integer`);
+  return value;
+}
 
-Walks a 1° world grid of land cells, populated places first. Cells inside an
-Inside Airbnb market are filled from that public data. GetHostEstimateData is
-called only for the rest, with:
-
-  - one request in flight
-  - at least 5000ms between requests, plus random jitter
-  - a per-run budget (default 24)
-  - exponential backoff on errors
-  - a full stop on HTTP 429, HTTP 403, or 3 consecutive errors
-
-Options:
-  --budget <n>         Airbnb requests this run (0..120, default 24)
-  --delay-ms <n>       Base gap between requests (minimum 5000, default 5000)
-  --jitter-ms <n>      Extra random wait added to the base gap (default 2500)
-  --fresh-days <n>     Do not refetch a stored cell younger than this (default 30)
-  --markets <n>        Inside Airbnb markets to download this run (default 1)
-  --room <type>        ENTIRE_HOME or PRIVATE_ROOM (default ENTIRE_HOME)
-  --bedrooms <n>       0..8 (default 2). Inside Airbnb rows are not split by bedroom.
-  --currency <code>    Currency sent to Airbnb (default USD). No FX conversion.
-  --spike <n>          Consecutive errors that abort the run (default 3)
-  --acknowledge-stop   Required after a 429, 403, or error spike before continuing
-  --dry-run            Print the Airbnb cells that would be requested. Sends nothing.
-`);
+if (process.argv.includes("--help")) {
+  console.log(`Usage: npm run collect -- [--budget ${DEFAULT_BUDGET}] [--delay-ms ${DEFAULT_DELAY_MS}] [--jitter-ms ${DEFAULT_JITTER_MS}] [--fresh-days 30] [--room ENTIRE_HOME] [--bedrooms 2] [--currency EUR]`);
+  console.log("Budget is the number of Airbnb requests, including retries. It cannot exceed 60.");
   process.exit(0);
 }
 
-const room = (value("--room") ?? "ENTIRE_HOME") as RoomTypeCategory;
-if (!ROOM_TYPE_CATEGORIES.includes(room)) {
-  console.error("--room must be ENTIRE_HOME or PRIVATE_ROOM");
+const room = (flag("--room") ?? "ENTIRE_HOME") as StoredRoomTypeCategory;
+const freshDays = integerFlag("--fresh-days", 30);
+
+let result;
+try {
+  result = await runCollector({
+    budget: integerFlag("--budget", DEFAULT_BUDGET),
+    delayMs: integerFlag("--delay-ms", DEFAULT_DELAY_MS),
+    jitterMs: integerFlag("--jitter-ms", DEFAULT_JITTER_MS),
+    freshMs: freshDays * 24 * 60 * 60 * 1000,
+    roomTypeCategory: room,
+    bedrooms: integerFlag("--bedrooms", 2),
+    currency: flag("--currency") ?? "EUR",
+    log: (message) => console.log(message),
+  });
+} catch (error) {
+  console.error(error instanceof Error ? error.message : error);
   process.exit(1);
 }
 
-const summary = await runCollector({
-  budget: integer("--budget", 24),
-  delayMs: integer("--delay-ms", 5_000),
-  jitterMs: integer("--jitter-ms", 2_500),
-  freshDays: integer("--fresh-days", 30),
-  marketsPerRun: integer("--markets", 1),
-  roomType: room,
-  bedrooms: integer("--bedrooms", 2),
-  currency: value("--currency") ?? "USD",
-  spikeThreshold: integer("--spike", 3),
-  acknowledgeStop: has("--acknowledge-stop"),
-  dryRun: has("--dry-run"),
-});
+for (const attempt of result.attempts) {
+  const outcome = attempt.empty ? "empty" : attempt.stored ? "stored" : "not-stored";
+  console.log(
+    `airbnb ${attempt.cellId} status ${attempt.status ?? "network"} ${outcome} waitedMs ${attempt.waitedMs}`,
+  );
+}
 
-if (summary.refused || isHardStop(summary.stop)) {
-  process.exitCode = 2;
+console.log(
+  `stop ${result.stopReason} stopped ${result.stopped} attempts ${result.airbnbAttempts} inside-airbnb ${result.cellsBySource["inside-airbnb"]} airbnb-host-estimate ${result.cellsBySource["airbnb-host-estimate"]}`,
+);
+if (result.errors.length > 0) {
+  console.log(`errors ${JSON.stringify(result.errors)}`);
 }

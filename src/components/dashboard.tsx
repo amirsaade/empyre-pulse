@@ -20,7 +20,7 @@ import { WorldPanel } from "@/components/world-panel";
 import { useAreaScan } from "@/hooks/use-area-scan";
 import type { Comparable, RoomTypeCategory } from "@/lib/airbnb-estimate";
 import { HEATMAP_COLOR_RANGE, colorDomain, magma, normalize } from "@/lib/color";
-import type { CollectedResponse, MapEstimate } from "@/lib/estimate-record";
+import type { CollectedResponse, MapEstimate } from "@/lib/collected-view";
 import { formatCompactMoney, formatCount, formatMoney } from "@/lib/format";
 import {
   summarizeMarket,
@@ -34,6 +34,8 @@ import { DEFAULT_MODEL, type Market, type MarketDataset, type ModelParams } from
 type Mode = "live" | "city" | "world";
 
 const WORLD_FOCUS: Bounds = { north: 78, south: -56, east: 179.9, west: -179.9 };
+/** Below this zoom a 0.5° square is only a few pixels, so the map draws a dot. */
+const WORLD_SQUARE_ZOOM = 5;
 
 type Hover = {
   x: number;
@@ -185,6 +187,7 @@ export function Dashboard({ markets }: { markets: Market[] }) {
   const [worldData, setWorldData] = useState<CollectedResponse | null>(null);
   const [worldLoading, setWorldLoading] = useState(false);
   const [worldError, setWorldError] = useState<string | null>(null);
+  const [worldZoom, setWorldZoom] = useState(10);
   const worldRequest = useRef(0);
 
   const loadCollected = useCallback(async (currency: string | null, roomType: RoomTypeCategory) => {
@@ -255,9 +258,32 @@ export function Dashboard({ markets }: { markets: Market[] }) {
               value: cell.bedrooms < 0 ? "Not split" : String(cell.bedrooms),
             },
           ],
-          footer: cell.marketSlug ?? `${cell.latitude.toFixed(2)}, ${cell.longitude.toFixed(2)}`,
+          footer: `${cell.latitude.toFixed(1)}, ${cell.longitude.toFixed(1)}`,
         });
       };
+      // A 0.5° square is only a couple of pixels at world zoom. Draw a fixed
+      // dot there, and the square itself once the cell is large enough to read.
+      if (worldZoom < WORLD_SQUARE_ZOOM) {
+        return [
+          new ScatterplotLayer<MapEstimate>({
+            id: "world-dots",
+            data: cells,
+            pickable: true,
+            filled: true,
+            stroked: true,
+            radiusUnits: "pixels",
+            getRadius: 7,
+            radiusMinPixels: 6,
+            radiusMaxPixels: 9,
+            lineWidthMinPixels: 1,
+            getPosition: (cell) => [cell.longitude, cell.latitude],
+            getFillColor: paint,
+            getLineColor: [255, 255, 255, 200],
+            updateTriggers: { getFillColor: [low, high, extruded] },
+            onHover,
+          }),
+        ];
+      }
       return [
         new PolygonLayer<MapEstimate>({
           id: "world-cells",
@@ -287,25 +313,6 @@ export function Dashboard({ markets }: { markets: Market[] }) {
             getFillColor: [low, high, extruded],
             getElevation: [low, high],
           },
-          onHover,
-        }),
-        // 1° squares are only a couple of pixels at world zoom, so a fixed-size
-        // dot keeps the same gross value findable until you zoom into the cell.
-        new ScatterplotLayer<MapEstimate>({
-          id: "world-dots",
-          data: cells,
-          pickable: true,
-          filled: true,
-          stroked: true,
-          radiusUnits: "pixels",
-          getRadius: 7,
-          radiusMinPixels: 6,
-          radiusMaxPixels: 9,
-          lineWidthMinPixels: 1,
-          getPosition: (cell) => [cell.longitude, cell.latitude],
-          getFillColor: paint,
-          getLineColor: [255, 255, 255, 200],
-          updateTriggers: { getFillColor: [low, high, extruded] },
           onHover,
         }),
       ];
@@ -473,6 +480,7 @@ export function Dashboard({ markets }: { markets: Market[] }) {
     mode,
     worldData,
     worldDomain,
+    worldZoom,
     scan.cells,
     scan.meta,
     scan.comparables,
@@ -600,7 +608,7 @@ export function Dashboard({ markets }: { markets: Market[] }) {
               }}
               onReload={() => void loadCollected(worldCurrency, worldRoom)}
               onFrameWorld={() => setFocus({ ...WORLD_FOCUS })}
-              onFocusCell={(cell) => setFocus(boundsAround(cell.latitude, cell.longitude, 220))}
+              onFocusCell={(cell) => setFocus(boundsAround(cell.latitude, cell.longitude, 80))}
               domain={worldDomain}
             />
           ) : null}
@@ -622,6 +630,7 @@ export function Dashboard({ markets }: { markets: Market[] }) {
         onBoundsChange={(bounds) => {
           viewBounds.current = bounds;
         }}
+        onZoomChange={setWorldZoom}
         onReady={(handle) => {
           mapHandle.current = handle;
         }}

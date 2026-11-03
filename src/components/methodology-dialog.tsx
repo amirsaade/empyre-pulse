@@ -92,17 +92,17 @@ export function MethodologyDialog() {
                 World store <span className="text-muted-foreground">(accumulated)</span>
               </h3>
               <p className="text-muted-foreground">
-                Live scans and the background collector write gross estimates into a local SQLite
-                file. The World tab draws everything stored for one currency. Inside Airbnb cells
-                are the median modelled gross for a 1° cell, divided down to a month. Airbnb cells
-                are that endpoint&apos;s own monthly gross for the room type and bedroom count that
-                was asked. Currencies are never converted, so the colour scale always stays inside
-                one of them.
+                The World tab draws gross estimates already stored as JSON in this repo, one
+                currency at a time. Nothing is converted, and nothing is profit. Inside Airbnb
+                cells are the San Francisco model&apos;s annual gross divided down to a month for a
+                0.5° cell. Airbnb cells are that endpoint&apos;s own monthly gross. At world zoom
+                each cell is a fixed-size dot; zoom in and it becomes the 0.5° square that was
+                sampled. Colour runs from the 5th to the 95th percentile.
               </p>
               <p className="text-muted-foreground">
-                The collector prefers Inside Airbnb wherever a market covers the cell, and only
-                then calls Airbnb. Those calls go out one at a time, at least five seconds apart,
-                and the run stops outright on an HTTP 429 or 403.
+                The collector prefers Inside Airbnb wherever a committed snapshot covers the cell,
+                and only then calls Airbnb. Those calls go out one at a time, about 25 seconds
+                apart and never under five, and the run stops outright on an HTTP 429 or 403.
               </p>
             </section>
 

@@ -10,9 +10,8 @@
     "build:catalog": "node scripts/build-catalog.mjs",
     "snapshot": "tsx scripts/snapshot.mts",
     "collect": "tsx scripts/collect.mts",
-    "verify:collector": "tsx --test src/lib/collect-policy.test.ts src/lib/world-grid.test.ts src/lib/collector.test.ts",
-    "build:grid": "node scripts/build-world-grid.mjs",
-    "typecheck": "tsc --noEmit"
+    "check:collector": "tsx scripts/check-collector.mts",
+    "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
     "@deck.gl/aggregation-layers": "^9.4.0",

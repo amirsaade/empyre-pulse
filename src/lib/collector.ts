@@ -1,502 +1,534 @@
-import { existsSync } from "node:fs";
-import { readFile } from "node:fs/promises";
-import path from "node:path";
+/**
+ * Walks the European land grid and stores gross estimates.
+ *
+ * Inside Airbnb snapshots fill a cell when they already cover it. Every other
+ * cell uses Airbnb GetHostEstimateData, one request at a time, with a gap that
+ * never drops under 5 seconds. A 429 or 403 stops the run immediately.
+ */
 
-import { aggregateMarketCells } from "./aggregate-market";
 import {
-  airbnbStatus,
+  AirbnbHttpError,
   coordQuery,
   fetchEstimate,
   type Estimate,
   type EstimateQuery,
-  type RoomTypeCategory,
 } from "./airbnb-estimate";
+import { buildLandGrid, GRID_STEP, type EuropeCell } from "./europe-grid";
 import {
-  DEFAULT_BUDGET,
-  DEFAULT_DELAY_MS,
-  DEFAULT_FRESH_DAYS,
-  DEFAULT_JITTER_MS,
-  DEFAULT_MARKETS_PER_RUN,
-  DEFAULT_SPIKE,
-  MARKET_FAILURE_LIMIT,
-  assertBudget,
-  assertPoliteDelay,
-  cellAction,
-  errorGapMs,
-  finishWalk,
-  httpStopReason,
-  initialWalk,
-  isFresh,
-  isHardStop,
-  reduceVisit,
-  spacingMs,
-  type StopReason,
-} from "./collect-policy";
-import { EstimateStore, defaultStorePath, queryKey } from "./estimate-store";
-import { MARKETS, loadDataset } from "./inside-airbnb";
-import { DEFAULT_MODEL, type Market, type MarketDataset } from "./types";
+  buildOrderedGrid,
+  localDecision,
+  type DerivedGross,
+  type LocalCoverage,
+} from "./inside-airbnb-grid";
 import {
-  CELL_DEGREES,
-  loadWorldGrid,
-  reservedBy,
-  type MarketAnchor,
-  type WorldCell,
-} from "./world-grid";
+  appendRun,
+  DEFAULT_FRESHNESS_MS,
+  emptyCellsBySource,
+  lookupFreshness,
+  readCursor,
+  upsertEstimate,
+  writeCursor,
+  type CellsBySource,
+  type EstimateSource,
+  type RunError,
+  type StoredRoomTypeCategory,
+} from "./store";
 
-export type CollectSummary = {
-  refused: boolean;
-  dryRun: boolean;
-  stop: StopReason | "refused" | null;
-  stopDetail: string | null;
-  airbnbRequests: number;
-  cursor: number;
-  gridLength: number;
-  deferred: number;
-  marketsIngested: string[];
-  planned: { cellId: string; latitude: number; longitude: number }[];
+export const MIN_REQUEST_GAP_MS = 5_000;
+export const DEFAULT_DELAY_MS = 25_000;
+export const DEFAULT_JITTER_MS = 5_000;
+export const DEFAULT_BUDGET = 45;
+export const MAX_BUDGET = 60;
+export const MAX_CONSECUTIVE_ERRORS = 3;
+export const MAX_ERROR_RATE = 0.2;
+export const ERROR_RATE_MIN_CELLS = 5;
+export const DEFAULT_TRANSIENT_RETRIES = 2;
+
+export const STOP_REASONS = {
+  budget: "budget",
+  complete: "complete",
+  http429: "http-429",
+  http403: "http-403",
+  consecutive: "error-spike-consecutive",
+  rate: "error-spike-rate",
+} as const;
+
+export type StopReason = (typeof STOP_REASONS)[keyof typeof STOP_REASONS];
+
+const TRANSIENT_STATUS = new Set([408, 425, 500, 502, 503, 504]);
+
+export type FetchOutcome =
+  | { kind: "estimate"; estimate: Estimate | null }
+  | { kind: "http"; status: number }
+  | { kind: "error"; message: string };
+
+export type AirbnbAttemptLog = {
+  cellId: string;
+  latitude: number;
+  longitude: number;
+  status: number | null;
+  stored: boolean;
+  empty: boolean;
+  waitedMs: number;
 };
 
-export type CollectOptions = {
+export type CollectorResult = {
+  totalLandCells: number;
+  candidateCells: number;
+  oceanCellsSkipped: number;
+  insideAirbnbCells: number;
+  populatedCells: number;
+  startedAtIndex: number;
+  nextIndex: number;
+  airbnbAttempts: number;
+  attempts: AirbnbAttemptLog[];
+  cellsBySource: CellsBySource;
+  stopped: boolean;
+  stopReason: StopReason;
+  errors: RunError[];
+};
+
+export type CollectorOptions = {
   budget?: number;
   delayMs?: number;
   jitterMs?: number;
-  freshDays?: number;
-  marketsPerRun?: number;
-  roomType?: RoomTypeCategory;
+  freshMs?: number;
+  roomTypeCategory?: StoredRoomTypeCategory;
   bedrooms?: number;
   currency?: string;
-  spikeThreshold?: number;
-  acknowledgeStop?: boolean;
-  dryRun?: boolean;
-  storePath?: string;
-  /** Test seam. Production calls GetHostEstimateData. */
-  fetchImpl?: (query: EstimateQuery) => Promise<Estimate | null>;
-  sleepImpl?: (ms: number) => Promise<void>;
-  randomImpl?: () => number;
-  now?: () => number;
+  maxTransientRetries?: number;
+  /** Injected by the check script. The CLI uses the real European grid. */
+  cells?: EuropeCell[];
+  candidateCells?: number;
+  coverage?: LocalCoverage;
+  fetchCell?: (query: EstimateQuery) => Promise<FetchOutcome>;
+  sleep?: (ms: number) => Promise<void>;
+  now?: () => Date;
+  random?: () => number;
   log?: (message: string) => void;
-  cells?: WorldCell[];
-  anchors?: MarketAnchor[];
-  markets?: Market[];
 };
 
-const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
-
-function snapshotPath(slug: string): string {
-  return path.join(process.cwd(), "data", "snapshots", `${slug}.json`);
+export function assertBudget(budget: number): number {
+  if (!Number.isInteger(budget) || budget < 1 || budget > MAX_BUDGET) {
+    throw new Error(`budget must be an integer from 1 to ${MAX_BUDGET}`);
+  }
+  return budget;
 }
 
-/**
- * One polite pass over the world grid.
- *
- * Inside Airbnb markets are ingested first (local snapshots, then at most
- * `marketsPerRun` downloads). GetHostEstimateData is used only for cells that
- * public data does not already cover, and only one request is in flight.
- */
-export async function runCollector(options: CollectOptions = {}): Promise<CollectSummary> {
-  const delayMs = assertPoliteDelay(options.delayMs ?? DEFAULT_DELAY_MS);
+/** Gap before an Airbnb request. Jitter is added to the base delay, then floored at 5s. */
+export function requestGapMs(delayMs: number, jitterMs: number, random: () => number): number {
+  const roll = Math.min(1, Math.max(0, random()));
+  const jitter = Math.max(0, jitterMs) * roll;
+  return Math.max(MIN_REQUEST_GAP_MS, delayMs + jitter);
+}
+
+/** Exponential backoff for a transient retry. `retryIndex` 0 is the first retry. */
+export function backoffMs(
+  delayMs: number,
+  jitterMs: number,
+  random: () => number,
+  retryIndex: number,
+): number {
+  const gap = requestGapMs(delayMs, jitterMs, random);
+  return Math.max(MIN_REQUEST_GAP_MS, gap * 2 ** (retryIndex + 1));
+}
+
+export function spikeReason(
+  consecutive: number,
+  failures: number,
+  finished: number,
+): StopReason | null {
+  if (consecutive >= MAX_CONSECUTIVE_ERRORS) return STOP_REASONS.consecutive;
+  if (finished >= ERROR_RATE_MIN_CELLS && failures / finished > MAX_ERROR_RATE) {
+    return STOP_REASONS.rate;
+  }
+  return null;
+}
+
+export function isTransient(outcome: FetchOutcome): boolean {
+  if (outcome.kind === "http") return TRANSIENT_STATUS.has(outcome.status);
+  if (outcome.kind === "error") {
+    const message = outcome.message.toLowerCase();
+    return (
+      message.includes("network") ||
+      message.includes("fetch") ||
+      message.includes("timeout") ||
+      message.includes("aborted")
+    );
+  }
+  return false;
+}
+
+export async function runCollector(options: CollectorOptions = {}): Promise<CollectorResult> {
   const budget = assertBudget(options.budget ?? DEFAULT_BUDGET);
-  const jitterMs = Math.max(0, options.jitterMs ?? DEFAULT_JITTER_MS);
-  const freshMs = Math.max(1, options.freshDays ?? DEFAULT_FRESH_DAYS) * 24 * 60 * 60 * 1000;
-  const marketsPerRun = options.marketsPerRun ?? DEFAULT_MARKETS_PER_RUN;
-  const roomType = options.roomType ?? "ENTIRE_HOME";
+  const delayMs = assertNonNegative(options.delayMs ?? DEFAULT_DELAY_MS, "delayMs");
+  const jitterMs = assertNonNegative(options.jitterMs ?? DEFAULT_JITTER_MS, "jitterMs");
+  const freshMs = assertNonNegative(options.freshMs ?? DEFAULT_FRESHNESS_MS, "freshMs");
+  const roomTypeCategory = options.roomTypeCategory ?? "ENTIRE_HOME";
   const bedrooms = options.bedrooms ?? 2;
-  const currency = (options.currency ?? "USD").toUpperCase();
-  const spikeThreshold = options.spikeThreshold ?? DEFAULT_SPIKE;
-  const dryRun = options.dryRun ?? false;
-  const now = options.now ?? Date.now;
-  const log = options.log ?? ((message: string) => console.log(message));
-  const random = options.randomImpl ?? Math.random;
-  const pause = options.sleepImpl ?? sleep;
-  const fetchImpl = options.fetchImpl ?? fetchEstimate;
-  const markets = options.markets ?? MARKETS;
+  const currency = (options.currency ?? "EUR").toUpperCase();
+  const maxTransientRetries = options.maxTransientRetries ?? DEFAULT_TRANSIENT_RETRIES;
+  const sleep = options.sleep ?? defaultSleep;
+  const now = options.now ?? (() => new Date());
+  const random = options.random ?? Math.random;
+  const fetchCell = options.fetchCell ?? defaultFetchCell;
+  const log = options.log ?? (() => {});
 
-  if (!Number.isInteger(bedrooms) || bedrooms < 0 || bedrooms > 8) {
-    throw new Error("Bedrooms must be an integer from 0 to 8");
+  if (roomTypeCategory !== "ENTIRE_HOME" && roomTypeCategory !== "PRIVATE_ROOM") {
+    throw new Error("roomTypeCategory must be ENTIRE_HOME or PRIVATE_ROOM");
   }
-  if (!Number.isInteger(marketsPerRun) || marketsPerRun < 0) {
-    throw new Error("marketsPerRun must be a non-negative integer");
+  if (!Number.isInteger(bedrooms) || bedrooms < 0 || bedrooms > 20) {
+    throw new Error("bedrooms must be an integer from 0 to 20");
   }
-  if (!Number.isInteger(spikeThreshold) || spikeThreshold < 1) {
-    throw new Error("spikeThreshold must be an integer of at least 1");
-  }
+  if (!/^[A-Z]{3}$/.test(currency)) throw new Error("currency must be a 3-letter ISO code");
 
-  const grid =
-    options.cells !== undefined
-      ? { cells: options.cells, anchors: options.anchors ?? [] }
-      : loadWorldGrid();
+  const grid = options.cells
+    ? {
+        cells: options.cells,
+        candidates: options.candidateCells ?? options.cells.length,
+        coverage: options.coverage ?? {
+          derivable: new Map<string, DerivedGross>(),
+          coveredEmpty: new Set<string>(),
+          stamp: "injected",
+        },
+      }
+    : prepareEurope(currency, roomTypeCategory);
 
-  const key = queryKey(roomType, bedrooms, currency);
-  const store = new EstimateStore(options.storePath ?? defaultStorePath());
+  const cells = grid.cells;
+  const sweepId = sweepIdFor(roomTypeCategory, bedrooms, currency, grid.coverage.stamp);
+  const cursor = readCursor();
+  const resume =
+    cursor !== null &&
+    cursor.sweepId === sweepId &&
+    cursor.roomTypeCategory === roomTypeCategory &&
+    cursor.bedrooms === bedrooms &&
+    cursor.currency === currency &&
+    cursor.nextIndex < cells.length &&
+    cursor.stopReason !== STOP_REASONS.complete;
 
-  let inFlight = 0;
-  const fetchOne = async (query: EstimateQuery) => {
-    if (inFlight !== 0) {
-      throw new Error("Collector invariant broken: more than one Airbnb request in flight");
-    }
-    inFlight += 1;
-    try {
-      return await fetchImpl(query);
-    } finally {
-      inFlight -= 1;
-    }
+  let index = resume ? cursor.nextIndex : 0;
+  const startedAtIndex = index;
+  let lastCellId = cursor?.lastCellId ?? null;
+  let attempts = 0;
+  let consecutive = 0;
+  let failures = 0;
+  let finished = 0;
+  const cellsBySource = emptyCellsBySource();
+  const errors = new Map<string, RunError>();
+  const attemptLog: AirbnbAttemptLog[] = [];
+  let stopReason: StopReason = STOP_REASONS.complete;
+
+  const persist = (reason: string | null) => {
+    writeCursor({
+      sweepId,
+      nextIndex: index,
+      lastCellId,
+      total: cells.length,
+      roomTypeCategory,
+      bedrooms,
+      currency,
+      source: "airbnb-host-estimate",
+      stopReason: reason,
+    });
   };
 
-  try {
-    const previous = store.getProgress(key);
-    if (previous && previous.cellDegrees !== CELL_DEGREES) {
-      throw new Error(
-        `This store was collected at ${previous.cellDegrees}° cells. Refusing to mix in a ${CELL_DEGREES}° grid.`,
-      );
-    }
+  persist(null);
+  log(
+    `European land cells: ${cells.length} (oceans skipped: ${grid.candidates - cells.length} of ${grid.candidates}). Resuming at ${index}.`,
+  );
 
-    if (previous && isHardStop(previous.lastStopReason) && !options.acknowledgeStop) {
-      log(
-        `collect  refused  last run stopped (${previous.lastStopReason}). Re-run with --acknowledge-stop after you have read why: ${previous.lastStopDetail ?? ""}`,
-      );
-      return {
-        refused: true,
-        dryRun,
-        stop: "refused",
-        stopDetail: previous.lastStopDetail,
-        airbnbRequests: 0,
-        cursor: previous.gridCursor,
-        gridLength: previous.gridLength,
-        deferred: previous.deferredIndexes.length,
-        marketsIngested: [],
-        planned: [],
-      };
-    }
-
-    const marketsIngested: string[] = [];
-    if (!dryRun) {
-      marketsIngested.push(
-        ...(await ingestDueMarkets({
-          store,
-          markets,
-          marketsPerRun,
-          freshMs,
-          now,
-          log,
-        })),
-      );
-    }
-
-    const pending = pendingAnchors(store, markets, grid.anchors, now(), freshMs);
-    const freshCell = (cell: WorldCell) =>
-      cellIsFresh(store, cell, roomType, bedrooms, currency, now(), freshMs);
-    const reservedCell = (cell: WorldCell) => reservedBy(cell, pending) !== null;
-
-    if (dryRun) {
-      const planned = planRequests({
-        cells: grid.cells,
-        cursor: previous?.gridCursor ?? 0,
-        deferred: previous?.deferredIndexes ?? [],
-        budget,
-        freshCell,
-        reservedCell,
-      });
-      for (const cell of planned) {
-        log(`collect  dry-run  ${cell.latitude.toFixed(1)},${cell.longitude.toFixed(1)}  ${cell.id}`);
-      }
-      log(`collect  dry-run  ${planned.length} Airbnb request(s) would be made. Nothing was sent or saved.`);
-      return {
-        refused: false,
-        dryRun: true,
-        stop: planned.length >= budget && budget > 0 ? "budget" : null,
-        stopDetail: "Dry run. No requests were sent and progress was not saved.",
-        airbnbRequests: 0,
-        cursor: previous?.gridCursor ?? 0,
-        gridLength: grid.cells.length,
-        deferred: previous?.deferredIndexes.length ?? 0,
-        marketsIngested,
-        planned: planned.map((cell) => ({
-          cellId: cell.id,
-          latitude: cell.latitude,
-          longitude: cell.longitude,
-        })),
-      };
-    }
-
-    let state = initialWalk({
-      length: grid.cells.length,
-      budget,
-      cursor: previous?.gridCursor ?? 0,
-      deferred: previous?.deferredIndexes ?? [],
-      spikeThreshold,
+  const finish = (reason: StopReason): CollectorResult => {
+    const gridFinished = index >= cells.length;
+    const resolved = gridFinished ? STOP_REASONS.complete : reason;
+    const stopped = resolved !== STOP_REASONS.complete;
+    persist(resolved);
+    appendRun({
+      date: now().toISOString(),
+      cellsCollected: cellsBySource["airbnb-host-estimate"] + cellsBySource["inside-airbnb"],
+      cellsBySource,
+      errors: [...errors.values()],
+      stopped,
+      stopReason: resolved,
+      prsOpened: [],
     });
+    return {
+      totalLandCells: cells.length,
+      candidateCells: grid.candidates,
+      oceanCellsSkipped: grid.candidates - cells.length,
+      insideAirbnbCells: cells.filter((cell) => cell.priority === 0 || cell.priority === 1).length,
+      populatedCells: cells.filter((cell) => cell.priority <= 2).length,
+      startedAtIndex,
+      nextIndex: index,
+      airbnbAttempts: attempts,
+      attempts: attemptLog,
+      cellsBySource,
+      stopped,
+      stopReason: resolved,
+      errors: [...errors.values()],
+    };
+  };
 
-    if (budget > 0) {
-      let launched = 0;
-      let nextGap = spacingMs(delayMs, jitterMs, random());
+  while (index < cells.length) {
+    const cell = cells[index];
+    const decision = localDecision(cell, grid.coverage);
+    const source: EstimateSource = decision.kind === "derive" ? "inside-airbnb" : "airbnb-host-estimate";
 
-      const consider = async (index: number, fromDeferred: boolean) => {
-        if (state.stop) return;
-        const cell = grid.cells[index];
-        if (!cell) return;
-        const action = cellAction({
-          fresh: freshCell(cell),
-          reserved: reservedCell(cell),
-        });
-
-        if (action !== "fetch") {
-          state = reduceVisit(state, index, action, fromDeferred);
-          return;
-        }
-
-        if (state.used >= state.budget) {
-          state = {
-            ...state,
-            stop: "budget",
-            stopDetail: `Request budget of ${state.budget} reached`,
-            deferred:
-              fromDeferred && !state.deferred.includes(index)
-                ? [...state.deferred, index]
-                : state.deferred,
-          };
-          return;
-        }
-
-        if (launched > 0) await pause(nextGap);
-
-        launched += 1;
-        log(
-          `collect  airbnb ${launched}/${budget}  ${cell.latitude.toFixed(2)},${cell.longitude.toFixed(2)}  ${roomType} ${bedrooms}br ${currency}`,
-        );
-
-        try {
-          const estimate = await fetchOne({
-            searchQuery: coordQuery(cell.latitude, cell.longitude),
-            roomTypeCategory: roomType,
-            bedrooms,
-            currency,
-          });
-          store.upsert({
-            cellId: cell.id,
-            latitude: cell.latitude,
-            longitude: cell.longitude,
-            cellHeight: CELL_DEGREES,
-            cellWidth: CELL_DEGREES,
-            monthly: estimate?.monthly ?? null,
-            nightly: estimate?.nightly ?? null,
-            nights: estimate?.nights ?? null,
-            currency,
-            roomType,
-            bedrooms,
-            source: "GetHostEstimateData",
-            fetchedAt: new Date(now()).toISOString(),
-            status: estimate ? "estimate" : "empty",
-            sampleSize: estimate ? estimate.comparables.length : 0,
-            marketSlug: null,
-          });
-          state = reduceVisit(state, index, estimate ? "stored" : "empty", fromDeferred);
-          const gross = estimate ? `${estimate.monthly} ${estimate.currency}/mo gross` : "no supply";
-          log(`collect  stored  ${cell.id}  ${gross}`);
-          nextGap = spacingMs(delayMs, jitterMs, random());
-        } catch (error) {
-          const status = airbnbStatus(error);
-          const hard = httpStopReason(status);
-          const message = error instanceof Error ? error.message : "Request failed";
-          log(`collect  error  ${cell.id}  ${message}`);
-          state = reduceVisit(state, index, hard ?? "error", fromDeferred);
-          if (!state.stop) {
-            nextGap = errorGapMs(delayMs, jitterMs, state.consecutiveErrors, random());
-          }
-        }
-      };
-
-      const deferredQueue = [...state.deferred];
-      for (const index of deferredQueue) {
-        await consider(index, true);
-        if (state.stop) break;
+    if (decision.kind !== "covered-empty") {
+      const fresh = lookupFreshness(
+        {
+          cellId: cell.cellId,
+          roomTypeCategory,
+          bedrooms,
+          currency,
+          source,
+        },
+        { maxAgeMs: freshMs, now: now() },
+      );
+      if (fresh.fresh) {
+        index += 1;
+        persist(null);
+        continue;
       }
-
-      while (!state.stop && state.cursor < grid.cells.length) {
-        const index = state.cursor;
-        await consider(index, false);
-        if (!state.stop && state.cursor === index) {
-          throw new Error(`Collector did not advance past cell index ${index}`);
-        }
-      }
-    } else {
-      state = {
-        ...state,
-        stop: "budget",
-        stopDetail:
-          "Budget is 0. Inside Airbnb markets were ingested; no Airbnb requests were made.",
-      };
     }
 
-    state = finishWalk(state);
-    const updatedAt = new Date(now()).toISOString();
-    store.saveRun(
-      {
-        queryKey: key,
-        gridCursor: state.cursor,
-        gridLength: grid.cells.length,
-        cellDegrees: CELL_DEGREES,
-        lastRunAt: updatedAt,
-        lastStopReason: state.stop,
-        lastStopDetail: state.stopDetail,
-        lastAirbnbRequests: state.used,
-        totalAirbnbRequests: (previous?.totalAirbnbRequests ?? 0) + state.used,
-        updatedAt,
-      },
-      state.deferred,
-    );
-
-    log(
-      `collect  done  stop=${state.stop ?? "none"}  airbnb=${state.used}  cursor=${state.cursor}/${grid.cells.length}  deferred=${state.deferred.length}`,
-    );
-    if (state.stopDetail) log(`collect  ${state.stopDetail}`);
-
-    return {
-      refused: false,
-      dryRun: false,
-      stop: state.stop,
-      stopDetail: state.stopDetail,
-      airbnbRequests: state.used,
-      cursor: state.cursor,
-      gridLength: grid.cells.length,
-      deferred: state.deferred.length,
-      marketsIngested,
-      planned: [],
-    };
-  } finally {
-    store.close();
-  }
-}
-
-function cellIsFresh(
-  store: EstimateStore,
-  cell: WorldCell,
-  roomType: RoomTypeCategory,
-  bedrooms: number,
-  currency: string,
-  nowMs: number,
-  freshMs: number,
-): boolean {
-  const airbnbAt = store.airbnbFetchedAt(cell.id, roomType, bedrooms, currency);
-  if (airbnbAt && isFresh(airbnbAt, nowMs, freshMs)) return true;
-  const insideAt = store.insideFetchedAt(cell.id, roomType);
-  return Boolean(insideAt && isFresh(insideAt, nowMs, freshMs));
-}
-
-function pendingAnchors(
-  store: EstimateStore,
-  markets: readonly Market[],
-  anchors: readonly MarketAnchor[],
-  nowMs: number,
-  freshMs: number,
-): MarketAnchor[] {
-  const pending = new Set<string>();
-  for (const market of markets) {
-    const row = store.getMarket(market.slug);
-    if (!row || row.status === "failed") {
-      pending.add(market.slug);
+    if (decision.kind === "derive") {
+      storeCell(cell, decision.gross, "inside-airbnb", roomTypeCategory, bedrooms, currency, now());
+      cellsBySource["inside-airbnb"] += 1;
+      lastCellId = cell.cellId;
+      index += 1;
+      persist(null);
       continue;
     }
-    if (row.status === "skipped") continue;
-    if (!isFresh(row.fetchedAt, nowMs, freshMs)) pending.add(market.slug);
-  }
-  return anchors.filter((anchor) => pending.has(anchor.slug));
-}
 
-async function ingestDueMarkets(input: {
-  store: EstimateStore;
-  markets: readonly Market[];
-  marketsPerRun: number;
-  freshMs: number;
-  now: () => number;
-  log: (message: string) => void;
-}): Promise<string[]> {
-  const due = input.markets.filter((market) => {
-    const row = input.store.getMarket(market.slug);
-    if (!row || row.status === "failed") return true;
-    if (row.status === "skipped") return false;
-    return !isFresh(row.fetchedAt, input.now(), input.freshMs);
-  });
+    if (decision.kind === "covered-empty") {
+      lastCellId = cell.cellId;
+      index += 1;
+      persist(null);
+      continue;
+    }
 
-  const snapshots: Market[] = [];
-  const remote: Market[] = [];
-  for (const market of due) {
-    if (existsSync(snapshotPath(market.slug))) snapshots.push(market);
-    else remote.push(market);
-  }
-
-  const ingested: string[] = [];
-  for (const market of snapshots) {
-    if (await ingestMarket(input, market, "snapshot")) ingested.push(market.slug);
-  }
-  for (const market of remote.slice(0, input.marketsPerRun)) {
-    if (await ingestMarket(input, market, "network")) ingested.push(market.slug);
-  }
-  return ingested;
-}
-
-async function ingestMarket(
-  input: { store: EstimateStore; now: () => number; log: (message: string) => void },
-  market: Market,
-  origin: "snapshot" | "network",
-): Promise<boolean> {
-  try {
-    const dataset = await readMarket(market, origin);
-    const fetchedAt = new Date(input.now()).toISOString();
-    const rows = aggregateMarketCells(dataset, DEFAULT_MODEL, fetchedAt);
-    input.store.replaceMarket(market.slug, rows);
-    input.store.recordMarket({
-      slug: market.slug,
-      fetchedAt,
-      cellsWritten: rows.length,
-      origin,
-      failures: 0,
-      status: "ok",
+    const outcome = await fetchWithinBudget({
+      cell,
+      budget,
+      attempts,
+      delayMs,
+      jitterMs,
+      random,
+      sleep,
+      fetchCell,
+      maxTransientRetries,
+      roomTypeCategory,
+      bedrooms,
+      currency,
+      onAttempt(entry) {
+        attempts += 1;
+        attemptLog.push(entry);
+      },
     });
-    input.log(`collect  inside-airbnb  ${market.city}  ${rows.length} gross cells (${origin})`);
-    return true;
-  } catch (error) {
-    const failures = input.store.recordMarketFailure(market.slug, MARKET_FAILURE_LIMIT);
-    const message = error instanceof Error ? error.message : "failed";
-    input.log(`collect  inside-airbnb  ${market.slug}  failed (${failures}): ${message}`);
-    return false;
+
+    if (outcome.kind === "budget") {
+      stopReason = STOP_REASONS.budget;
+      break;
+    }
+
+    if (outcome.kind === "fatal") {
+      noteError(errors, outcome.status, `HTTP ${outcome.status}`);
+      stopReason = outcome.status === 429 ? STOP_REASONS.http429 : STOP_REASONS.http403;
+      break;
+    }
+
+    if (outcome.kind === "failed") {
+      noteError(errors, outcome.status, outcome.message);
+      consecutive += 1;
+      failures += 1;
+      finished += 1;
+      const spiked = spikeReason(consecutive, failures, finished);
+      index += 1;
+      lastCellId = cell.cellId;
+      persist(null);
+      if (spiked) {
+        stopReason = spiked;
+        break;
+      }
+      if (attempts >= budget) {
+        stopReason = STOP_REASONS.budget;
+        break;
+      }
+      continue;
+    }
+
+    if (outcome.kind === "stored") {
+      storeCell(
+        cell,
+        {
+          monthly: outcome.estimate.monthly,
+          nightly: outcome.estimate.nightly,
+          nights: outcome.estimate.nights,
+        },
+        "airbnb-host-estimate",
+        roomTypeCategory,
+        bedrooms,
+        currency,
+        now(),
+      );
+      cellsBySource["airbnb-host-estimate"] += 1;
+    }
+
+    consecutive = 0;
+    finished += 1;
+    lastCellId = cell.cellId;
+    index += 1;
+    persist(null);
+    if (attempts >= budget) {
+      stopReason = STOP_REASONS.budget;
+      break;
+    }
   }
+
+  return finish(stopReason);
 }
 
-async function readMarket(market: Market, origin: "snapshot" | "network"): Promise<MarketDataset> {
-  if (origin === "snapshot") {
-    const text = await readFile(snapshotPath(market.slug), "utf8");
-    return JSON.parse(text) as MarketDataset;
-  }
-  const loaded = await loadDataset(market);
-  return loaded.dataset;
-}
+type BudgetFetch =
+  | { kind: "stored"; estimate: Estimate }
+  | { kind: "empty" }
+  | { kind: "failed"; status: number | null; message: string }
+  | { kind: "fatal"; status: 429 | 403 }
+  | { kind: "budget" };
 
-function planRequests(input: {
-  cells: readonly WorldCell[];
-  cursor: number;
-  deferred: readonly number[];
+async function fetchWithinBudget(input: {
+  cell: EuropeCell;
   budget: number;
-  freshCell: (cell: WorldCell) => boolean;
-  reservedCell: (cell: WorldCell) => boolean;
-}): WorldCell[] {
-  if (input.budget <= 0) return [];
-  const planned: WorldCell[] = [];
-  const seen = new Set<number>();
-  const indexes = [...input.deferred];
-  for (let index = input.cursor; index < input.cells.length; index++) indexes.push(index);
+  attempts: number;
+  delayMs: number;
+  jitterMs: number;
+  random: () => number;
+  sleep: (ms: number) => Promise<void>;
+  fetchCell: (query: EstimateQuery) => Promise<FetchOutcome>;
+  maxTransientRetries: number;
+  roomTypeCategory: "ENTIRE_HOME" | "PRIVATE_ROOM";
+  bedrooms: number;
+  currency: string;
+  onAttempt: (entry: AirbnbAttemptLog) => void;
+}): Promise<BudgetFetch> {
+  let attempts = input.attempts;
+  let retryIndex = 0;
 
-  for (const index of indexes) {
-    if (seen.has(index)) continue;
-    seen.add(index);
-    const cell = input.cells[index];
-    if (!cell) continue;
-    const action = cellAction({
-      fresh: input.freshCell(cell),
-      reserved: input.reservedCell(cell),
+  while (true) {
+    if (attempts >= input.budget) return { kind: "budget" };
+    const waitedMs =
+      retryIndex === 0
+        ? requestGapMs(input.delayMs, input.jitterMs, input.random)
+        : backoffMs(input.delayMs, input.jitterMs, input.random, retryIndex - 1);
+    await input.sleep(waitedMs);
+    attempts += 1;
+
+    const query: EstimateQuery = {
+      searchQuery: coordQuery(input.cell.latitude, input.cell.longitude),
+      roomTypeCategory: input.roomTypeCategory,
+      bedrooms: input.bedrooms,
+      currency: input.currency,
+    };
+    const outcome = await input.fetchCell(query);
+    const status = outcome.kind === "http" ? outcome.status : outcome.kind === "estimate" ? 200 : null;
+    const stored = outcome.kind === "estimate" && outcome.estimate !== null;
+    input.onAttempt({
+      cellId: input.cell.cellId,
+      latitude: input.cell.latitude,
+      longitude: input.cell.longitude,
+      status,
+      stored,
+      empty: outcome.kind === "estimate" && outcome.estimate === null,
+      waitedMs,
     });
-    if (action !== "fetch") continue;
-    planned.push(cell);
-    if (planned.length >= input.budget) break;
+
+    if (outcome.kind === "http" && (outcome.status === 429 || outcome.status === 403)) {
+      return { kind: "fatal", status: outcome.status };
+    }
+    if (outcome.kind === "estimate") {
+      return outcome.estimate ? { kind: "stored", estimate: outcome.estimate } : { kind: "empty" };
+    }
+
+    const message = outcome.kind === "http" ? `HTTP ${outcome.status}` : outcome.message;
+    const statusOrNull = outcome.kind === "http" ? outcome.status : null;
+    if (isTransient(outcome) && retryIndex < input.maxTransientRetries && attempts < input.budget) {
+      retryIndex += 1;
+      continue;
+    }
+    return { kind: "failed", status: statusOrNull, message };
   }
-  return planned;
+}
+
+function storeCell(
+  cell: EuropeCell,
+  gross: { monthly: number; nightly: number; nights: number },
+  source: EstimateSource,
+  roomTypeCategory: StoredRoomTypeCategory,
+  bedrooms: number,
+  currency: string,
+  fetchedAt: Date,
+): void {
+  upsertEstimate({
+    cellId: cell.cellId,
+    latitude: cell.latitude,
+    longitude: cell.longitude,
+    monthly: gross.monthly,
+    nightly: gross.nightly,
+    nights: gross.nights,
+    currency,
+    roomTypeCategory,
+    bedrooms,
+    source,
+    fetchedAt: fetchedAt.toISOString(),
+  });
+}
+
+function noteError(errors: Map<string, RunError>, status: number | null, message: string): void {
+  const key = `${status ?? "none"}|${message}`;
+  const existing = errors.get(key);
+  if (existing) existing.count += 1;
+  else errors.set(key, { status, message, count: 1 });
+}
+
+function prepareEurope(currency: string, roomTypeCategory: StoredRoomTypeCategory): {
+  cells: EuropeCell[];
+  candidates: number;
+  coverage: LocalCoverage;
+} {
+  const land = buildLandGrid();
+  const ordered = buildOrderedGrid(land.cells, currency, roomTypeCategory);
+  return { cells: ordered.cells, candidates: land.candidates, coverage: ordered.coverage };
+}
+
+function sweepIdFor(
+  roomTypeCategory: StoredRoomTypeCategory,
+  bedrooms: number,
+  currency: string,
+  stamp: string,
+): string {
+  const id = `europe-v1-${GRID_STEP}-${roomTypeCategory}-${bedrooms}-${currency}-${stamp}`;
+  return id.length <= 180 ? id : `${id.slice(0, 140)}-${stamp.length}`;
+}
+
+function assertNonNegative(value: number, label: string): number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+    throw new Error(`${label} must be a non-negative finite number`);
+  }
+  return value;
+}
+
+function defaultSleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+async function defaultFetchCell(query: EstimateQuery): Promise<FetchOutcome> {
+  try {
+    const estimate = await fetchEstimate(query);
+    return { kind: "estimate", estimate };
+  } catch (error) {
+    if (error instanceof AirbnbHttpError) return { kind: "http", status: error.status };
+    const message = error instanceof Error ? error.message : "network error";
+    return { kind: "error", message: message.slice(0, 180) };
+  }
 }
