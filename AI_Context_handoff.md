@@ -322,16 +322,18 @@ under their own source.
 - `date` — ISO-8601
 - `cellsCollected` — total stored this run
 - `cellsBySource` — `{ "airbnb-host-estimate", "inside-airbnb" }`, sums to `cellsCollected`
+- `airbnbAttempts` — HTTP calls this run, including retries and empty responses.
+  Lines from before this field are read as stored Airbnb cells plus error counts.
 - `errors[]` — `{ status, message, count }`. Put HTTP 429 and 403 in `status`
   (`null` when the failure had no status). `count` is how many times it happened.
 - `stopped` — true when the sweep did not finish
-- `stopReason` — `budget`, `complete`, `http-429`, `http-403`,
+- `stopReason` — `budget`, `daily-cap`, `complete`, `http-429`, `http-403`,
   `error-spike-consecutive`, or `error-spike-rate`
 - `prsOpened` — pull request URLs (or other ids) opened for that run's data
 
 `summarizeRuns` rolls that up to run count, cells collected, cells by source,
-last run time, last stop reason, stopped runs, error counts by status, and the
-PR list.
+Airbnb attempts, last run time, last stop reason, stopped runs, error counts
+by status, and the PR list.
 
 **Read API.** `GET /api/store` (nodejs, `force-dynamic`, `cache-control:
 no-store`) returns `{ cells, cellCount, cursor, runLog }` where `runLog` is the
@@ -383,7 +385,8 @@ interactive scan only).
 
 - Exactly one request in flight.
 - Wait `max(5000, delayMs + random * jitterMs)` before every attempt, including the first. Defaults: delay 25s, jitter 5s.
-- `--budget` default 45. Integers only. Above 60 throws. Every attempt, including a retry, consumes one.
+- `--budget` default 150. Integers only. Above 200 throws. Every attempt, including a retry, consumes one.
+- A Europe/Paris calendar day (`Europe/Paris`, DST included) caps all runs combined at 200 Airbnb attempts. The allowance left is `200 - sum(airbnbAttempts)` for log lines whose `date` falls on that Paris day. The run's budget is the minimum of `--budget` and that remainder. Exhausting the remainder stops with `daily-cap`. Inside Airbnb derivation does not spend the cap. The smoke run on 2026-11-03 has no `airbnbAttempts` field; reading it counts its 3 stored Airbnb cells.
 - Transient statuses 408, 425, 500, 502, 503, 504 and network errors back off to `gap * 2^(retry+1)`, up to 2 retries.
 - HTTP 429 or 403: stop immediately, leave `nextIndex` on that cell, `stopReason` `http-429` or `http-403`.
 - After a non-fatal cell failure, move past that cell. Stop when 3 consecutive Airbnb cells fail (`error-spike-consecutive`) or, once 5 cells have finished, when failures / finished > 0.2 (`error-spike-rate`). The 5-cell floor is what keeps a single error from always tripping the 20% rule.
@@ -554,7 +557,8 @@ Other scripts: `npm run build:catalog` (refresh `src/data/markets.json`),
   in `methodology-dialog.tsx` / README.
 - Don't widen Airbnb scan concurrency or the 400-cell cap — it's deliberately
   polite to an undocumented endpoint. Don't run the collector with more than
-  one Airbnb request in flight, and don't raise its budget above 60.
+  one Airbnb request in flight, and don't raise its per-run budget above 200
+  or its Europe/Paris daily cap above 200.
 - Don't upgrade `maplibre-gl` past v5 or re-enable interleaved deck rendering
   without proving the map still draws.
 

@@ -135,7 +135,8 @@ Room categories are `ENTIRE_HOME`, `PRIVATE_ROOM`, `SHARED_ROOM`, and
 hotel rooms).
 
 A run-log line holds `date`, `cellsCollected`, `cellsBySource`
-(`airbnb-host-estimate` and `inside-airbnb`), `errors` (`status`, `message`,
+(`airbnb-host-estimate` and `inside-airbnb`), `airbnbAttempts` (HTTP calls,
+including retries), `errors` (`status`, `message`,
 `count` — record HTTP 429 and 403 in `status`), `stopped` (the sweep did not
 finish), `stopReason`, and `prsOpened`.
 
@@ -145,7 +146,7 @@ log. It is read-only.
 ### Collector
 
 ```bash
-npm run collect -- --budget 45 --delay-ms 25000 --jitter-ms 5000 --fresh-days 30 --room ENTIRE_HOME --bedrooms 2 --currency EUR
+npm run collect -- --budget 150 --delay-ms 25000 --jitter-ms 5000 --fresh-days 30 --room ENTIRE_HOME --bedrooms 2 --currency EUR
 ```
 
 Cells are ordered populated-first: local Inside Airbnb listings, then other
@@ -164,14 +165,15 @@ Every other cell uses `GetHostEstimateData` through `src/lib/airbnb-estimate.ts`
 
 - One request in flight.
 - The wait is the base delay plus random jitter, and it is never under 5 seconds. The default base is 25 seconds.
-- `--budget` counts every attempt, including retries. The default is 45. Values above 60 are rejected.
+- `--budget` counts every attempt, including retries. The default is 150. Values above 200 are rejected.
+- All runs on one Europe/Paris calendar day share a cap of 200 Airbnb requests. The count comes from each run log's `airbnbAttempts` (older lines use stored Airbnb cells plus recorded errors). A second run the same day only receives what is left. Inside Airbnb cells do not spend this cap.
 - Transient HTTP failures back off exponentially. A 429 or 403 stops the run on that cell.
 - The run also stops after 3 consecutive Airbnb cell errors, or when errors exceed 20% of finished Airbnb cells once 5 cells have finished.
 - A stored cell younger than `--fresh-days` (default 30) is not fetched again.
 
-`stopReason` is `budget`, `complete`, `http-429`, `http-403`,
+`stopReason` is `budget`, `daily-cap`, `complete`, `http-429`, `http-403`,
 `error-spike-consecutive`, or `error-spike-rate`. `npm run check:collector`
-exercises the throttle, the stops, and resume with a mocked fetch.
+exercises the throttle, the per-run cap, the Paris-day cap, and resume with a mocked fetch.
 
 Collected files under `data/collected/` may be committed directly on `dev` and
 on `main`. Other code changes do not: see below.

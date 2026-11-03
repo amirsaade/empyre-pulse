@@ -26,19 +26,24 @@ import {
   emptyCellsBySource,
   lookupFreshness,
   readCursor,
+  readRuns,
   upsertEstimate,
   writeCursor,
   type CellsBySource,
   type EstimateSource,
   type RunError,
+  type RunLogEntry,
   type StoredRoomTypeCategory,
 } from "./store";
 
 export const MIN_REQUEST_GAP_MS = 5_000;
 export const DEFAULT_DELAY_MS = 25_000;
 export const DEFAULT_JITTER_MS = 5_000;
-export const DEFAULT_BUDGET = 45;
-export const MAX_BUDGET = 60;
+export const DEFAULT_BUDGET = 150;
+export const MAX_BUDGET = 200;
+/** Airbnb requests allowed across every run on one Europe/Paris calendar day. */
+export const DAILY_REQUEST_CAP = 200;
+export const PARIS_TIME_ZONE = "Europe/Paris";
 export const MAX_CONSECUTIVE_ERRORS = 3;
 export const MAX_ERROR_RATE = 0.2;
 export const ERROR_RATE_MIN_CELLS = 5;
@@ -46,6 +51,7 @@ export const DEFAULT_TRANSIENT_RETRIES = 2;
 
 export const STOP_REASONS = {
   budget: "budget",
+  dailyCap: "daily-cap",
   complete: "complete",
   http429: "http-429",
   http403: "http-403",
@@ -115,6 +121,28 @@ export function assertBudget(budget: number): number {
   return budget;
 }
 
+/** Calendar date in Europe/Paris, `YYYY-MM-DD`, including daylight-saving time. */
+export function parisCalendarDay(instant: Date): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: PARIS_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(instant);
+}
+
+/** Airbnb attempts already recorded for this Europe/Paris day. */
+export function airbnbAttemptsOnParisDay(runs: readonly RunLogEntry[], day: string): number {
+  let total = 0;
+  for (const run of runs) {
+    const parsed = new Date(run.date);
+    if (Number.isNaN(parsed.getTime())) continue;
+    if (parisCalendarDay(parsed) !== day) continue;
+    total += run.airbnbAttempts;
+  }
+  return total;
+}
+
 /** Gap before an Airbnb request. Jitter is added to the base delay, then floored at 5s. */
 export function requestGapMs(delayMs: number, jitterMs: number, random: () => number): number {
   const roll = Math.min(1, Math.max(0, random()));
@@ -160,7 +188,7 @@ export function isTransient(outcome: FetchOutcome): boolean {
 }
 
 export async function runCollector(options: CollectorOptions = {}): Promise<CollectorResult> {
-  const budget = assertBudget(options.budget ?? DEFAULT_BUDGET);
+  const requestedBudget = assertBudget(options.budget ?? DEFAULT_BUDGET);
   const delayMs = assertNonNegative(options.delayMs ?? DEFAULT_DELAY_MS, "delayMs");
   const jitterMs = assertNonNegative(options.jitterMs ?? DEFAULT_JITTER_MS, "jitterMs");
   const freshMs = assertNonNegative(options.freshMs ?? DEFAULT_FRESHNESS_MS, "freshMs");
@@ -173,6 +201,11 @@ export async function runCollector(options: CollectorOptions = {}): Promise<Coll
   const random = options.random ?? Math.random;
   const fetchCell = options.fetchCell ?? defaultFetchCell;
   const log = options.log ?? (() => {});
+  const today = parisCalendarDay(now());
+  const usedToday = airbnbAttemptsOnParisDay(readRuns(), today);
+  const remainingToday = Math.max(0, DAILY_REQUEST_CAP - usedToday);
+  const budget = Math.min(requestedBudget, remainingToday);
+  const limitedByDay = budget < requestedBudget;
 
   if (roomTypeCategory !== "ENTIRE_HOME" && roomTypeCategory !== "PRIVATE_ROOM") {
     throw new Error("roomTypeCategory must be ENTIRE_HOME or PRIVATE_ROOM");
@@ -234,7 +267,7 @@ export async function runCollector(options: CollectorOptions = {}): Promise<Coll
 
   persist(null);
   log(
-    `European land cells: ${cells.length} (oceans skipped: ${grid.candidates - cells.length} of ${grid.candidates}). Resuming at ${index}.`,
+    `European land cells: ${cells.length} (oceans skipped: ${grid.candidates - cells.length} of ${grid.candidates}). Resuming at ${index}. Airbnb budget ${budget} of ${requestedBudget} (${remainingToday} left on ${today} Europe/Paris, cap ${DAILY_REQUEST_CAP}).`,
   );
 
   const finish = (reason: StopReason): CollectorResult => {
@@ -246,6 +279,7 @@ export async function runCollector(options: CollectorOptions = {}): Promise<Coll
       date: now().toISOString(),
       cellsCollected: cellsBySource["airbnb-host-estimate"] + cellsBySource["inside-airbnb"],
       cellsBySource,
+      airbnbAttempts: attempts,
       errors: [...errors.values()],
       stopped,
       stopReason: resolved,
@@ -327,7 +361,7 @@ export async function runCollector(options: CollectorOptions = {}): Promise<Coll
     });
 
     if (outcome.kind === "budget") {
-      stopReason = STOP_REASONS.budget;
+      stopReason = limitedByDay ? STOP_REASONS.dailyCap : STOP_REASONS.budget;
       break;
     }
 
@@ -351,7 +385,7 @@ export async function runCollector(options: CollectorOptions = {}): Promise<Coll
         break;
       }
       if (attempts >= budget) {
-        stopReason = STOP_REASONS.budget;
+        stopReason = limitedByDay ? STOP_REASONS.dailyCap : STOP_REASONS.budget;
         break;
       }
       continue;
@@ -380,7 +414,7 @@ export async function runCollector(options: CollectorOptions = {}): Promise<Coll
     index += 1;
     persist(null);
     if (attempts >= budget) {
-      stopReason = STOP_REASONS.budget;
+      stopReason = limitedByDay ? STOP_REASONS.dailyCap : STOP_REASONS.budget;
       break;
     }
   }

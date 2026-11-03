@@ -3,17 +3,21 @@
  *   npm run check:collector
  */
 
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
 import type { Estimate } from "@/lib/airbnb-estimate";
 import {
+  DAILY_REQUEST_CAP,
+  DEFAULT_BUDGET,
   MAX_BUDGET,
   MIN_REQUEST_GAP_MS,
   STOP_REASONS,
   assertBudget,
   backoffMs,
+  parisCalendarDay,
   requestGapMs,
   runCollector,
   spikeReason,
@@ -21,8 +25,37 @@ import {
 } from "@/lib/collector";
 import { buildLandGrid, formatCellId, snapToGrid, type EuropeCell } from "@/lib/europe-grid";
 import { buildOrderedGrid } from "@/lib/inside-airbnb-grid";
-import { readCursor, readRuns, resetCollectedRoot, setCollectedRoot, upsertEstimate } from "@/lib/store";
+import {
+  appendRun,
+  emptyCellsBySource,
+  readCursor,
+  readRuns,
+  resetCollectedRoot,
+  setCollectedRoot,
+  upsertEstimate,
+} from "@/lib/store";
 
+function storeFingerprint(): string {
+  const root = path.join(process.cwd(), "data", "collected");
+  const files: string[] = [];
+  const walk = (dir: string) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else files.push(full);
+    }
+  };
+  walk(root);
+  files.sort();
+  const hash = createHash("sha256");
+  for (const file of files) {
+    hash.update(path.relative(root, file));
+    hash.update(fs.readFileSync(file));
+  }
+  return hash.digest("hex");
+}
+
+const storeBefore = storeFingerprint();
 let failed = 0;
 
 function check(condition: boolean, message: string): void {
@@ -70,12 +103,16 @@ check(backoffMs(25_000, 0, () => 0, 0) === 50_000, "first retry backs off to 50s
 check(backoffMs(25_000, 0, () => 0, 1) === 100_000, "second retry backs off to 100s");
 let budgetThrew = false;
 try {
-  assertBudget(61);
+  assertBudget(MAX_BUDGET + 1);
 } catch {
   budgetThrew = true;
 }
-check(budgetThrew, "budget above 60 is rejected");
-check(assertBudget(MAX_BUDGET) === 60, "budget of 60 is allowed");
+check(budgetThrew, "budget above 200 is rejected");
+check(assertBudget(MAX_BUDGET) === 200, "budget of 200 is allowed");
+check(DEFAULT_BUDGET === 150, "default per-run budget is 150");
+check(DAILY_REQUEST_CAP === 200, "Paris-day cap is 200");
+check(parisCalendarDay(new Date("2026-11-03T12:00:00.000Z")) === "2026-11-03", "noon UTC is 3 Nov in Paris");
+check(parisCalendarDay(new Date("2026-11-03T23:30:00.000Z")) === "2026-11-04", "23:30 UTC is already 4 Nov in Paris");
 check(spikeReason(3, 3, 3) === STOP_REASONS.consecutive, "3 consecutive errors stop the run");
 check(spikeReason(1, 1, 4) === null, "error rate waits for 5 finished cells");
 check(spikeReason(1, 2, 5) === STOP_REASONS.rate, "more than 20% errors stop the run");
@@ -278,11 +315,116 @@ for (const status of [429, 403] as const) {
   check(result.cellsBySource["airbnb-host-estimate"] === 1, "the next cell still uses the Airbnb budget");
 }
 
+function manyCells(count: number): EuropeCell[] {
+  return Array.from({ length: count }, (_, index) => {
+    const latitude = (30 + (index % 40) * 0.5).toFixed(1);
+    const longitude = (Math.floor(index / 40) - 2).toFixed(1);
+    return cell(`${latitude},${longitude}`);
+  });
+}
+
+function seedAttempts(dir: string, date: string, airbnbAttempts: number): void {
+  setCollectedRoot(dir);
+  appendRun({
+    date,
+    cellsCollected: 0,
+    cellsBySource: emptyCellsBySource(),
+    airbnbAttempts,
+    errors: [],
+    stopped: true,
+    stopReason: "budget",
+    prsOpened: [],
+  });
+}
+
+{
+  const dir = tempDir();
+  setCollectedRoot(dir);
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, "runs.jsonl"),
+    `${JSON.stringify({
+      date: "2026-11-03T14:40:14.422Z",
+      cellsCollected: 3,
+      cellsBySource: { "airbnb-host-estimate": 3, "inside-airbnb": 0 },
+      errors: [{ status: 500, message: "HTTP 500", count: 2 }],
+      stopped: true,
+      stopReason: "budget",
+      prsOpened: [],
+    })}\n`,
+  );
+  check(readRuns()[0]?.airbnbAttempts === 5, "older run logs count stored Airbnb cells plus errors");
+}
+
+{
+  const dir = tempDir();
+  seedAttempts(dir, "2026-11-03T12:00:00.000Z", DAILY_REQUEST_CAP);
+  const { result, harness: state } = await harness(dir, [{ kind: "estimate", estimate: estimate() }], {
+    budget: 10,
+    now: () => new Date("2026-11-03T18:00:00.000Z"),
+  });
+  check(state.calls.length === 0, "a full Paris day sends no further Airbnb requests");
+  check(result.stopReason === STOP_REASONS.dailyCap, "the daily cap stops the run");
+  check(result.airbnbAttempts === 0, "the blocked run records zero attempts");
+}
+
+{
+  const dir = tempDir();
+  seedAttempts(dir, "2026-11-03T08:00:00.000Z", 150);
+  const { result, harness: state } = await harness(
+    dir,
+    [{ kind: "estimate", estimate: estimate() }],
+    {
+      budget: 100,
+      now: () => new Date("2026-11-03T18:00:00.000Z"),
+      cells: manyCells(80),
+    },
+  );
+  check(state.calls.length === 50, "a later run only uses what the Paris day has left");
+  check(result.stopReason === STOP_REASONS.dailyCap && result.stopped, "hitting the remainder stops as daily-cap");
+  check(readRuns().reduce((sum, run) => sum + run.airbnbAttempts, 0) === 200, "the two runs together stay at 200");
+}
+
+{
+  const dir = tempDir();
+  seedAttempts(dir, "2026-11-03T23:30:00.000Z", DAILY_REQUEST_CAP);
+  const { result, harness: state } = await harness(dir, [{ kind: "estimate", estimate: estimate() }], {
+    budget: 2,
+    now: () => new Date("2026-11-03T15:00:00.000Z"),
+  });
+  check(state.calls.length === 2 && result.stopReason === STOP_REASONS.budget, "the next Paris day does not consume today's cap");
+}
+
+{
+  const dir = tempDir();
+  seedAttempts(dir, "2026-11-03T22:30:00.000Z", DAILY_REQUEST_CAP);
+  const { harness: state, result } = await harness(dir, [{ kind: "estimate", estimate: estimate() }], {
+    budget: 1,
+    now: () => new Date("2026-11-03T20:00:00.000Z"),
+  });
+  check(state.calls.length === 0 && result.stopReason === STOP_REASONS.dailyCap, "22:30 UTC still counts as the same Paris day");
+}
+
+{
+  const dir = tempDir();
+  seedAttempts(dir, "2026-11-03T12:00:00.000Z", DAILY_REQUEST_CAP);
+  const coverage = {
+    derivable: new Map([["48.5,2.0", { monthly: 2100, nightly: 140, nights: 15, samples: 12 }]]),
+    coveredEmpty: new Set<string>(),
+    stamp: "injected",
+  };
+  const { result, harness: state } = await harness(dir, [{ kind: "estimate", estimate: estimate() }], {
+    budget: 5,
+    now: () => new Date("2026-11-03T16:00:00.000Z"),
+    coverage,
+  });
+  check(state.calls.length === 0, "a full day still does not call Airbnb");
+  check(result.cellsBySource["inside-airbnb"] === 1, "Inside Airbnb cells are still stored when the day is full");
+  check(result.stopReason === STOP_REASONS.dailyCap, "the run stops when the next cell would call Airbnb");
+}
+
 resetCollectedRoot();
-const runsBytes = fs.statSync(path.join(process.cwd(), "data", "collected", "runs.jsonl")).size;
-const cursorText = fs.readFileSync(path.join(process.cwd(), "data", "collected", "cursor.json"), "utf8");
-const cellFiles = fs.readdirSync(path.join(process.cwd(), "data", "collected", "cells")).filter((name) => name.endsWith(".json"));
-check(runsBytes === 0 && cursorText === "null\n" && cellFiles.length === 0, "the check script does not write the repo store");
+check(storeFingerprint() === storeBefore, "the check script does not write the repo store");
 
 if (failed > 0) {
   console.error(`${failed} check(s) failed`);
