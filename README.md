@@ -72,9 +72,9 @@ npm install
 npm run dev
 ```
 
-Then open <http://localhost:44317>. No API keys, no `.env`, no database - the
-Airbnb endpoint needs only its public key and the basemap is CARTO's free dark
-style.
+Then open <http://localhost:44317>. No API keys and no `.env`. The Airbnb
+endpoint needs only its public key and the basemap is CARTO's free dark style.
+Collected estimates are JSON files in this repo, not a database server.
 
 Four markets ship pre-baked in `data/snapshots/` so the Inside Airbnb tab works
 offline; the other 119 download on first use and cache to `.cache/`.
@@ -85,7 +85,7 @@ offline; the other 119 download on first use and cache to `.cache/`.
 | --- | --- |
 | `npm run dev` | Dev server on port 44317 |
 | `npm run build` | Production build |
-| `npm run typecheck` | `tsc --noEmit` |
+| `npm run typecheck` | `next typegen && tsc --noEmit` |
 | `npm run lint` | ESLint |
 | `npm run build:catalog` | Refresh `src/data/markets.json` from Inside Airbnb |
 | `npm run snapshot -- <slug>` | Pre-bake a market for offline use |
@@ -93,15 +93,74 @@ offline; the other 119 download on first use and cache to `.cache/`.
 Inside Airbnb re-scrapes each city roughly quarterly, which changes the download
 URLs. Re-run `npm run build:catalog` to pick up new scrapes.
 
+## Collected estimates
+
+A future collector can keep every gross figure it has already fetched. The live
+scan does not write this store yet, and nothing here calls Airbnb.
+
+The store is JSON committed in the repo, rather than SQLite. A SQLite file is a
+binary blob: a collector cannot review it, and two runs cannot merge it. Text
+JSON diffs line by line and needs no native module. Each cell is its own file,
+so a commit contains only the records written in that run. The run log is
+append-only JSON Lines, one run per line.
+
+```
+data/collected/cells/<cell>__<source>__<room>__<bedrooms>__<currency>__<hash>.json
+data/collected/cursor.json     grid resumption cursor, or null when idle
+data/collected/runs.jsonl      append-only run log
+```
+
+`src/lib/store.ts` is the typed API:
+
+- `readEstimates` / `readEstimate` read stored cells.
+- `upsertEstimate` inserts or replaces one cell. The dedupe key is `cellId` plus
+  `source`, `roomTypeCategory`, `bedrooms`, and `currency` (stored uppercase).
+- `lookupFreshness` reports whether that key is already stored and still inside
+  the freshness window (default 30 days), so a collector can skip it.
+- `readCursor` / `writeCursor` / `clearCursor` persist the active grid sweep
+  (`sweepId`, next index, last cell id, total, and the query).
+- `appendRun` / `readRuns` / `summarizeRuns` append and read the run log.
+
+Each cell record holds `cellId`, `latitude`, `longitude`, gross `monthly`,
+gross `nightly`, gross `nights`, `currency`, `roomTypeCategory`, `bedrooms`,
+`source` (`airbnb-host-estimate` or `inside-airbnb`), and `fetchedAt`.
+`monthly`, `nightly`, and `nights` are gross booking revenue, never profit.
+Room categories are `ENTIRE_HOME`, `PRIVATE_ROOM`, `SHARED_ROOM`, and
+`HOTEL_ROOM`. Map Inside Airbnb's labels onto those before writing
+(`Entire home/apt` → `ENTIRE_HOME`, and the same way for private, shared, and
+hotel rooms).
+
+A run-log line holds `date`, `cellsCollected`, `errors` (`status`, `message`,
+`count` — record HTTP 429 and 403 in `status`), `stopped` (the run halted
+before the sweep finished), and `prsOpened`.
+
+`GET /api/store` returns the cells, the cursor, and a short summary of the run
+log. It is read-only. The committed store starts empty.
+
+Collected files under `data/collected/` may be committed directly on `dev` and
+on `main`. Other code changes do not: see below.
+
+## Branching
+
+The app lives on `main`. `dev` is a long-lived branch created from `main`. It
+is never deleted.
+
+- Code changes go to `dev` through pull requests, and need Amir's yes before
+  they merge into `main`.
+- Collected data files may be committed directly to `dev` and to `main`.
+- Do not delete or force-push either branch.
+
 ## How it fits together
 
 ```
 src/lib/airbnb-estimate.ts   Client for Airbnb's GetHostEstimateData
 src/lib/scan.ts              Grid construction over a bounding box
+src/lib/store.ts             Collected cells, cursor, and run log
 src/lib/inside-airbnb.ts     CSV download, parse and cache
 src/lib/revenue.ts           The San Francisco occupancy model
 src/lib/market-stats.ts      Filtering and neighbourhood rollups
 src/app/api/scan             Streams grid results as NDJSON
+src/app/api/store            Reads collected cells and the run-log summary
 src/app/api/place            Resolves a place name to a scan area
 src/app/api/markets/[slug]   Serves a parsed Inside Airbnb market
 src/components/dashboard.tsx Map, layers and panel state
