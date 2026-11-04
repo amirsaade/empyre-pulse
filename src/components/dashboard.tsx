@@ -34,8 +34,18 @@ import { DEFAULT_MODEL, type Market, type MarketDataset, type ModelParams } from
 type Mode = "live" | "city" | "world";
 
 const WORLD_FOCUS: Bounds = { north: 78, south: -56, east: 179.9, west: -179.9 };
-/** Below this zoom a 0.5° square is only a few pixels, so the map draws a dot. */
-const WORLD_SQUARE_ZOOM = 5;
+
+/** Geographic square for one stored cell, from that cell's own width and height. */
+function estimateSquare(cell: MapEstimate): [number, number][] {
+  const halfH = cell.cellHeight / 2;
+  const halfW = cell.cellWidth / 2;
+  return [
+    [cell.longitude - halfW, cell.latitude - halfH],
+    [cell.longitude + halfW, cell.latitude - halfH],
+    [cell.longitude + halfW, cell.latitude + halfH],
+    [cell.longitude - halfW, cell.latitude + halfH],
+  ];
+}
 
 type Hover = {
   x: number;
@@ -187,7 +197,6 @@ export function Dashboard({ markets }: { markets: Market[] }) {
   const [worldData, setWorldData] = useState<CollectedResponse | null>(null);
   const [worldLoading, setWorldLoading] = useState(false);
   const [worldError, setWorldError] = useState<string | null>(null);
-  const [worldZoom, setWorldZoom] = useState(10);
   const worldRequest = useRef(0);
 
   const loadCollected = useCallback(async (currency: string | null, roomType: RoomTypeCategory) => {
@@ -261,29 +270,9 @@ export function Dashboard({ markets }: { markets: Market[] }) {
           footer: `${cell.latitude.toFixed(1)}, ${cell.longitude.toFixed(1)}`,
         });
       };
-      // A 0.5° square is only a couple of pixels at world zoom. Draw a fixed
-      // dot there, and the square itself once the cell is large enough to read.
-      if (worldZoom < WORLD_SQUARE_ZOOM) {
-        return [
-          new ScatterplotLayer<MapEstimate>({
-            id: "world-dots",
-            data: cells,
-            pickable: true,
-            filled: true,
-            stroked: true,
-            radiusUnits: "pixels",
-            getRadius: 7,
-            radiusMinPixels: 6,
-            radiusMaxPixels: 9,
-            lineWidthMinPixels: 1,
-            getPosition: (cell) => [cell.longitude, cell.latitude],
-            getFillColor: paint,
-            getLineColor: [255, 255, 255, 200],
-            updateTriggers: { getFillColor: [low, high, extruded] },
-            onHover,
-          }),
-        ];
-      }
+      // Same square at every zoom. Each cell carries its own size — 0.5° for
+      // the Europe collector, and whatever resolution another source stored —
+      // so the grid tiles on real bounds instead of a fixed pixel dot.
       return [
         new PolygonLayer<MapEstimate>({
           id: "world-cells",
@@ -295,16 +284,7 @@ export function Dashboard({ markets }: { markets: Market[] }) {
           getLineColor: [255, 255, 255, 40],
           getLineWidth: 1,
           lineWidthUnits: "pixels",
-          getPolygon: (cell) => {
-            const halfH = cell.cellHeight / 2;
-            const halfW = cell.cellWidth / 2;
-            return [
-              [cell.longitude - halfW, cell.latitude - halfH],
-              [cell.longitude + halfW, cell.latitude - halfH],
-              [cell.longitude + halfW, cell.latitude + halfH],
-              [cell.longitude - halfW, cell.latitude + halfH],
-            ];
-          },
+          getPolygon: estimateSquare,
           getFillColor: paint,
           getElevation: (cell) => normalize(cell.monthly, low, high) * 900,
           elevationScale: 1,
@@ -480,7 +460,6 @@ export function Dashboard({ markets }: { markets: Market[] }) {
     mode,
     worldData,
     worldDomain,
-    worldZoom,
     scan.cells,
     scan.meta,
     scan.comparables,
@@ -630,7 +609,6 @@ export function Dashboard({ markets }: { markets: Market[] }) {
         onBoundsChange={(bounds) => {
           viewBounds.current = bounds;
         }}
-        onZoomChange={setWorldZoom}
         onReady={(handle) => {
           mapHandle.current = handle;
         }}
