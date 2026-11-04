@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Empyre Pulse  short-term rental earnings heatmaps",
+  title: "Empyre Pulse",
   description:
     "Map what Airbnb hosts actually earn. Sweeps Airbnb's own host-earnings estimate across a coordinate grid and cross-checks it against public Inside Airbnb listing data.",
 };
