@@ -1,2 +1,3 @@
 {"date":"2026-11-03T14:40:14.422Z","cellsCollected":5,"cellsBySource":{"airbnb-host-estimate":3,"inside-airbnb":2},"errors":[],"stopped":true,"stopReason":"budget","prsOpened":[]}
 {"date":"2026-11-03T21:12:19.120Z","cellsCollected":146,"cellsBySource":{"airbnb-host-estimate":146,"inside-airbnb":0},"airbnbAttempts":150,"errors":[],"stopped":true,"stopReason":"budget","prsOpened":[]}
+{"date":"2026-11-04T09:47:46.210Z","cellsCollected":149,"cellsBySource":{"airbnb-host-estimate":149,"inside-airbnb":0},"airbnbAttempts":150,"errors":[],"stopped":true,"stopReason":"budget","prsOpened":[]}
