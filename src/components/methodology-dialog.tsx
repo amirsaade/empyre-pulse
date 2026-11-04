@@ -95,9 +95,9 @@ export function MethodologyDialog() {
                 The World tab draws gross estimates already stored as JSON in this repo, one
                 currency at a time. Nothing is converted, and nothing is profit. Inside Airbnb
                 cells are the San Francisco model&apos;s annual gross divided down to a month for a
-                0.5° cell. Airbnb cells are that endpoint&apos;s own monthly gross. At world zoom
-                each cell is a fixed-size dot; zoom in and it becomes the 0.5° square that was
-                sampled. Colour runs from the 5th to the 95th percentile.
+                0.5° cell. Airbnb cells are that endpoint&apos;s own monthly gross. Every zoom draws
+                that sampled square, sized from the cell&apos;s own width and height, so the map
+                stays a continuous grid. Colour runs from the 5th to the 95th percentile.
               </p>
               <p className="text-muted-foreground">
                 The collector prefers Inside Airbnb wherever a committed snapshot covers the cell,

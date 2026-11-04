@@ -123,7 +123,7 @@ src/app/icon.png              Favicon (emblem). src/app/apple-icon.png likewise.
 src/app/api/scan/route.ts         POST. Streams the live grid scan as NDJSON. (§4)
 src/app/api/store/route.ts        GET. Read-only cells, cursor, and run-log summary.
 src/app/api/collected/route.ts    GET. One currency of stored cells for the World tab.
-src/components/world-panel.tsx    World tab. Dots at world zoom, 0.5° squares closer in.
+src/components/world-panel.tsx    World tab. Squares sized to each cell at every zoom.
 src/app/api/place/route.ts        GET ?q=&currency=. Resolves place → bounds+headline.
 src/app/api/markets/route.ts      GET. Lists all Inside Airbnb markets.
 src/app/api/markets/[slug]/route.ts GET. Loads one market dataset (cache/net/snapshot).
@@ -341,9 +341,9 @@ by status, and the PR list.
 no-store`) returns `{ cells, cellCount, cursor, runLog }` where `runLog` is the
 summary. It does not write. `GET /api/collected?currency=EUR&roomType=ENTIRE_HOME`
 is the same store shaped for the World tab: one currency, gross monthly figures,
-and each cell tagged with the 0.5° size (`GRID_STEP`) so the map can draw the
-square. The tab draws a fixed-size dot until zoom 5, then the square. It does
-not write and does not call Airbnb. Verify the raw store with:
+and each cell tagged with its own size (the Europe collector uses `GRID_STEP`,
+0.5°) so the map can draw the square. The tab draws that square at every zoom.
+It does not write and does not call Airbnb. Verify the raw store with:
 
 ```bash
 curl -s http://127.0.0.1:44317/api/store

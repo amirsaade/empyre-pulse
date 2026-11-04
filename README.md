@@ -180,7 +180,7 @@ on `main`. Other code changes do not: see below.
 
 ## World tab
 
-The third tab draws what `npm run collect` has already stored. It shows one currency at a time, coloured from the 5th to the 95th percentile of gross monthly revenue. Zoomed out, each cell is a fixed-size dot. Zoomed in, the dot becomes the 0.5° square the collector sampled. The live scan does not write this store.
+The third tab draws what `npm run collect` has already stored. It shows one currency at a time, coloured from the 5th to the 95th percentile of gross monthly revenue. Every zoom draws each cell as the square that was sampled, using that cell's own width and height (0.5° for the Europe collector). The live scan does not write this store.
 
 ## Branching
 
