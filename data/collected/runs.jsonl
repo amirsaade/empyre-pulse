@@ -1,3 +1,4 @@
 {"date":"2026-11-03T14:40:14.422Z","cellsCollected":5,"cellsBySource":{"airbnb-host-estimate":3,"inside-airbnb":2},"errors":[],"stopped":true,"stopReason":"budget","prsOpened":[]}
 {"date":"2026-11-03T21:12:19.120Z","cellsCollected":146,"cellsBySource":{"airbnb-host-estimate":146,"inside-airbnb":0},"airbnbAttempts":150,"errors":[],"stopped":true,"stopReason":"budget","prsOpened":[]}
 {"date":"2026-11-04T09:47:46.210Z","cellsCollected":149,"cellsBySource":{"airbnb-host-estimate":149,"inside-airbnb":0},"airbnbAttempts":150,"errors":[],"stopped":true,"stopReason":"budget","prsOpened":[]}
+{"date":"2026-11-05T09:55:57.027Z","cellsCollected":149,"cellsBySource":{"airbnb-host-estimate":149,"inside-airbnb":0},"airbnbAttempts":150,"errors":[],"stopped":true,"stopReason":"budget","prsOpened":[],"europeParis":"2026-11-05T10:55:57.027+01:00","europeProgress":{"done":452,"total":4248},"projectedFinish":"2026-12-11"}
