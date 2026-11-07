@@ -1,0 +1,13 @@
+{
+  "cellId": "47.0,10.0",
+  "latitude": 47,
+  "longitude": 10,
+  "monthly": 1049,
+  "nightly": 175,
+  "nights": 6,
+  "currency": "EUR",
+  "roomTypeCategory": "ENTIRE_HOME",
+  "bedrooms": 2,
+  "source": "airbnb-host-estimate",
+  "fetchedAt": "2026-11-07T20:01:32.087Z"
+}
