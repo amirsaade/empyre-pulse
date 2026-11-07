@@ -1,12 +1,12 @@
 {
   "sweepId": "europe-v1-0.5-ENTIRE_HOME-2-EUR-paris-ile-de-france@2026-06-16",
-  "nextIndex": 601,
-  "lastCellId": "48.0,3.0",
+  "nextIndex": 751,
+  "lastCellId": "59.0,12.0",
   "total": 4248,
   "roomTypeCategory": "ENTIRE_HOME",
   "bedrooms": 2,
   "currency": "EUR",
   "source": "airbnb-host-estimate",
   "stopReason": "budget",
-  "updatedAt": "2026-11-06T09:50:04.385Z"
+  "updatedAt": "2026-11-07T20:25:32.768Z"
 }
